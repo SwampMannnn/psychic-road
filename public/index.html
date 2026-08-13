@@ -12,9 +12,9 @@
   --fd:'Shippori Mincho',serif;--fb:'Zen Kaku Gothic New',sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-html,body{height:100%;overflow:hidden;}
+html,body{height:100%;overflow-y:auto;}
 body{font-family:var(--fb);background:radial-gradient(circle at 20% 0%,#241a4d,var(--bg) 55%);color:var(--text);}
-.wrap{max-width:1100px;margin:0 auto;padding:8px 12px;height:100vh;display:flex;flex-direction:column;}
+.wrap{max-width:1100px;margin:0 auto;padding:8px 12px;min-height:100vh;display:flex;flex-direction:column;}
 .top-bar{text-align:center;flex-shrink:0;padding-bottom:4px;}
 .top-bar h1{font-family:var(--fd);font-weight:700;letter-spacing:.08em;font-size:1.2rem;background:linear-gradient(90deg,var(--teal),var(--vio));-webkit-background-clip:text;background-clip:text;color:transparent;display:inline;}
 .top-bar .sub{color:var(--dim);font-size:.72em;margin-left:8px;}
@@ -45,9 +45,27 @@ h3{font-family:var(--fd);font-size:.82rem;color:var(--dim);margin:8px 0 4px;}
 /* pre-game centered */
 #entry,#lobby,#roleSelect,#finished{max-width:420px;margin:20px auto;}
 .role-card{border:1px solid var(--panel-line);border-radius:8px;padding:10px;margin-bottom:8px;background:rgba(255,255,255,.02);display:flex;justify-content:space-between;align-items:center;gap:10px;}
+/* role carousel */
+#roleSelect{max-width:520px;margin:20px auto;}
+.carousel-wrap{position:relative;overflow:hidden;}
+.carousel-track{display:flex;transition:transform .4s ease;}
+.carousel-slide{min-width:100%;padding:0 8px;box-sizing:border-box;}
+.carousel-slide .rc-card{border:1px solid var(--panel-line);border-radius:12px;padding:16px;background:rgba(255,255,255,.03);text-align:center;}
+.carousel-slide .rc-img{width:100%;max-height:320px;object-fit:contain;border-radius:8px;margin-bottom:10px;}
+.carousel-slide .rc-name{font-family:var(--fd);font-size:1.2em;font-weight:700;color:var(--gold);margin-bottom:6px;}
+.carousel-slide .rc-desc{font-size:.82em;color:var(--dim);line-height:1.5;margin-bottom:10px;text-align:left;}
+.carousel-btn{position:absolute;top:50%;transform:translateY(-50%);background:rgba(155,107,255,.3);border:none;color:#fff;font-size:1.5em;width:36px;height:36px;border-radius:50%;cursor:pointer;z-index:5;}
+.carousel-btn:hover{background:rgba(155,107,255,.6);}
+.carousel-btn.prev{left:4px;}
+.carousel-btn.next{right:4px;}
+.carousel-dots{display:flex;justify-content:center;gap:6px;margin-top:8px;}
+.carousel-dots .dot{width:8px;height:8px;border-radius:50%;background:var(--panel-line);cursor:pointer;}
+.carousel-dots .dot.active{background:var(--gold);}
+/* player card role image */
+.p-card-img{width:32px;height:32px;border-radius:6px;object-fit:cover;flex-shrink:0;border:1px solid var(--panel-line);}
 /* ===== GAME LAYOUT (3-column) ===== */
 #game{display:none;flex:1;min-height:0;}
-.game-grid{display:grid;grid-template-columns:200px 1fr 200px;grid-template-rows:auto 1fr auto;gap:8px;height:100%;}
+.game-grid{display:grid;grid-template-columns:200px 1fr 200px;grid-template-rows:auto 1fr auto;gap:8px;min-height:400px;}
 .game-header{grid-column:1/4;display:flex;justify-content:center;align-items:baseline;gap:12px;}
 .game-header h2{margin:0;}
 .col-left{grid-column:1;grid-row:2;overflow-y:auto;display:flex;flex-direction:column;gap:6px;}
@@ -108,6 +126,7 @@ button.ability-glow{animation:abglow 1.2s ease-in-out infinite alternate;border-
 .d3-wrap.sm .fc5{transform:rotateX(90deg) translateZ(40px);}
 .d3-wrap.sm .fc2{transform:rotateX(-90deg) translateZ(40px);}
 .dice-shadow{width:80px;height:14px;background:radial-gradient(ellipse,rgba(0,0,0,.5),transparent 70%);border-radius:50%;margin:0 auto;}
+#tripleDiceArea{display:flex;justify-content:center;align-items:center;gap:16px;}
 .dice-info{font-family:var(--fd);font-size:1.3em;color:var(--text);text-align:center;min-height:1.4em;margin-top:6px;}
 .dice-info .bonus{color:var(--teal);font-size:.85em;display:block;margin-top:3px;}
 .battle-stage{display:flex;flex-direction:column;align-items:center;gap:8px;}
@@ -154,8 +173,13 @@ button.ability-glow{animation:abglow 1.2s ease-in-out infinite alternate;border-
 
   <div id="roleSelect" class="panel" style="display:none;">
     <h2>役職を選択</h2>
-    <div id="roleCards"></div>
-    <p id="roleSelectedMsg" style="color:var(--dim);font-size:.8em;"></p>
+    <div class="carousel-wrap">
+      <button class="carousel-btn prev" id="carPrev">‹</button>
+      <div class="carousel-track" id="carTrack"></div>
+      <button class="carousel-btn next" id="carNext">›</button>
+    </div>
+    <div class="carousel-dots" id="carDots"></div>
+    <p id="roleSelectedMsg" style="color:var(--dim);font-size:.8em;margin-top:8px;"></p>
   </div>
 
   <div id="powerReveal" class="panel" style="display:none;">
@@ -182,6 +206,7 @@ button.ability-glow{animation:abglow 1.2s ease-in-out infinite alternate;border-
         <div id="myTurnControls" style="display:none;">
           <div style="color:var(--gold);font-weight:700;font-size:.85em;margin-bottom:4px;">あなたの番です</div>
           <button class="pri" id="rollBtn">サイコロを振る</button>
+          <button id="tripleDiceBtn" style="display:none;background:linear-gradient(180deg,#7c3aed,#5b21b6);border-color:var(--vio);color:#fff;">トリプルダイス（残1回）</button>
           <button id="restBtn">休息する</button>
           <button id="abilityBtn">超能力を使う ▼</button>
           <div id="abilityPanel" style="display:none;"></div>
@@ -210,9 +235,18 @@ button.ability-glow{animation:abglow 1.2s ease-in-out infinite alternate;border-
 <!-- overlays -->
 <div id="diceOverlay">
   <div class="dice-stage">
-    <div class="d3-wrap" id="diceWrap"></div>
+    <div id="singleDiceArea"><div class="d3-wrap" id="diceWrap"></div></div>
+    <div id="tripleDiceArea" style="display:none;display:none;gap:12px;">
+      <div class="d3-wrap sm" id="diceWrap1"></div>
+      <div class="d3-wrap sm" id="diceWrap2"></div>
+      <div class="d3-wrap sm" id="diceWrap3"></div>
+    </div>
     <div class="dice-shadow" id="diceShadow"></div>
     <div class="dice-info" id="diceInfo"></div>
+    <div id="rerollArea" style="display:none;margin-top:8px;">
+      <button class="pri" id="rerollBtn" style="width:auto;">振り直す</button>
+      <button id="rerollSkipBtn" style="width:auto;">このまま進む</button>
+    </div>
   </div>
 </div>
 <div id="battleOverlay">
@@ -232,6 +266,9 @@ const $=id=>document.getElementById(id);
 const socket=io();
 let myId=null,currentRoom=null;
 socket.on('connect',()=>{myId=socket.id;});
+
+const ROLE_IMG={traveler:'traveler',professor:'professor',veteran:'veteran',farmer:'farmer',sheriff:'sheriff',assassin:'assassin',illusionist:'illusionist',gambler:'gambler'};
+const ROLE_ICON={traveler:'icon_traveler',professor:'icon_professor',veteran:'icon_veteran',farmer:'icon_farmer',sheriff:'icon_sheriff',assassin:'icon_assassin',illusionist:'icon_illusionist',gambler:'icon_gambler'};
 
 /* ========== SOUND ENGINE ========== */
 let audioCtx=null;
@@ -312,7 +349,7 @@ function rollAnim(cube,val,dur,shEl,cb){
 }
 
 /* ========== CANVAS MAP ========== */
-const COLS=7,CW=72,CH=66,PX=24,PY=20;
+const COLS=7,CW=88,CH=80,PX=30,PY=26;
 const TERR=[
   {bg:'#2e5a2a',glyph:'grass'},{bg:'#1e4828',glyph:'tree'},{bg:'#5a5468',glyph:'mtn'},
   {bg:'#204870',glyph:'water'},{bg:'#4a3e58',glyph:'ruin'},{bg:'#2e2838',glyph:'cave'}
@@ -341,7 +378,7 @@ function drawMap(cv,rm,tokenPosOverride){
   for(let i=1;i<tot;i++){c.beginPath();c.moveTo(cells[i-1].x,cells[i-1].y);c.lineTo(cells[i].x,cells[i].y);c.stroke();}
   c.setLineDash([]);
   // cells
-  const R=25;
+  const R=30;
   for(let i=0;i<tot;i++){
     const{x:cx,y:cy}=cells[i];const isS=i===0,isG=i===rm.boardSize;const t=TERR[i%TERR.length];
     c.fillStyle='rgba(0,0,0,.25)';hex(c,cx+1.5,cy+1.5,R);c.fill();
@@ -356,20 +393,42 @@ function drawMap(cv,rm,tokenPosOverride){
     c.fillStyle=isG?'#f2b705':isS?'#2dd4bf':'rgba(255,255,255,.35)';c.font='bold 7px sans-serif';c.textAlign='center';c.textBaseline='bottom';
     c.fillText(isG?'GOAL':isS?'START':i,cx,cy+R-1);
   }
-  // tokens — tokenPosOverride があればそちらを使う
-  const toff=[{dx:-8,dy:-7},{dx:8,dy:-7},{dx:-8,dy:7},{dx:8,dy:7}];
+  // tokens — draw icon images
+  const toff=[{dx:-12,dy:-10},{dx:12,dy:-10},{dx:-12,dy:10},{dx:12,dy:10}];
+  const tokenSize=20;
   rm.players.forEach((p,idx)=>{
     if(p.position==null) return;
     const overPos=tokenPosOverride&&tokenPosOverride[p.id]!=null?tokenPosOverride[p.id]:p.position;
     const ci=Math.min(overPos,rm.boardSize);
     const{x:cx,y:cy}=cells[ci];const o=toff[idx%4];const tx=cx+o.dx,ty=cy+o.dy;
-    c.beginPath();c.arc(tx,ty,8,0,Math.PI*2);
-    c.fillStyle=p.incapacitatedTurns>0?'#555':p.color;c.fill();
-    c.strokeStyle=p.id===rm.currentTurnId?'#f2b705':'rgba(255,255,255,.75)';c.lineWidth=p.id===rm.currentTurnId?2.2:1.3;c.stroke();
-    if(p.id===rm.currentTurnId){c.beginPath();c.arc(tx,ty,11,0,Math.PI*2);c.strokeStyle='rgba(242,183,5,.3)';c.lineWidth=1.5;c.stroke();}
-    c.fillStyle='#fff';c.font='bold 8px sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(p.name.charAt(0),tx,ty);
+    // icon image
+    const iconKey=p.roleId&&ROLE_ICON[p.roleId]?ROLE_ICON[p.roleId]:null;
+    const img=iconKey?tokenImgCache[iconKey]:null;
+    if(img&&img.complete){
+      c.save();
+      c.beginPath();c.arc(tx,ty,tokenSize/2,0,Math.PI*2);c.clip();
+      c.drawImage(img,tx-tokenSize/2,ty-tokenSize/2,tokenSize,tokenSize);
+      c.restore();
+    } else {
+      c.beginPath();c.arc(tx,ty,tokenSize/2,0,Math.PI*2);
+      c.fillStyle=p.incapacitatedTurns>0?'#555':p.color;c.fill();
+      c.fillStyle='#fff';c.font='bold 9px sans-serif';c.textAlign='center';c.textBaseline='middle';
+      c.fillText(p.name.charAt(0),tx,ty);
+    }
+    // border
+    c.beginPath();c.arc(tx,ty,tokenSize/2+1,0,Math.PI*2);
+    c.strokeStyle=p.id===rm.currentTurnId?'#f2b705':'rgba(255,255,255,.75)';
+    c.lineWidth=p.id===rm.currentTurnId?2.5:1.5;c.stroke();
+    if(p.id===rm.currentTurnId){c.beginPath();c.arc(tx,ty,tokenSize/2+4,0,Math.PI*2);c.strokeStyle='rgba(242,183,5,.3)';c.lineWidth=1.5;c.stroke();}
+    if(p.incapacitatedTurns>0){c.globalAlpha=0.4;c.beginPath();c.arc(tx,ty,tokenSize/2,0,Math.PI*2);c.fillStyle='#000';c.fill();c.globalAlpha=1;}
   });
 }
+
+// トークン画像のプリロード
+const tokenImgCache={};
+Object.entries(ROLE_ICON).forEach(([k,v])=>{
+  const img=new Image();img.src='/img/'+v+'.png';tokenImgCache[v]=img;
+});
 
 // 駒の1マスずつ移動アニメーション
 let tokenAnim=null;
@@ -454,10 +513,10 @@ $('readyBtn').onclick=()=>socket.emit('toggleReady');
 $('startBtn').onclick=()=>socket.emit('startGame');
 $('addBotBtn').onclick=()=>{console.log('addBot clicked');socket.emit('addBot');};
 $('rollBtn').onclick=()=>{
-  // diceProcessingがスタックしていたらリセット
   if(diceProcessing && diceQueue.length===0 && !tokenAnim && !mapFrozen){diceProcessing=false;}
   socket.emit('rollDice');
 };
+$('tripleDiceBtn').onclick=()=>{socket.emit('activateTripleDice');socket.emit('rollDice');};
 $('restBtn').onclick=()=>socket.emit('rest');
 $('abilityBtn').onclick=()=>{const p=$('abilityPanel');const show=p.style.display==='none';p.style.display=show?'block':'none';if(show)sfxAbilityOpen();};
 $('endTurnBtn').onclick=()=>socket.emit('endTurn');
@@ -477,11 +536,33 @@ function renderLobby(r){
     ul.appendChild(li);});
 }
 
+let carIndex=0;
+
 function renderRoleSelect(r){
-  const me=r.players.find(p=>p.id===myId);const c=$('roleCards');c.innerHTML='';
-  r.roles.forEach(role=>{const d=document.createElement('div');d.className='role-card';d.innerHTML='<div><strong>'+role.name+'</strong><br><span style="font-size:.8em;color:var(--dim);">'+role.description+'</span></div>';const b=document.createElement('button');b.textContent='選択';b.className='pri';b.disabled=!!(me&&me.roleId);b.onclick=()=>socket.emit('selectRole',{roleId:role.id});d.appendChild(b);c.appendChild(d);});
+  const me=r.players.find(p=>p.id===myId);
+  const track=$('carTrack');track.innerHTML='';
+  const dots=$('carDots');dots.innerHTML='';
+  r.roles.forEach((role,i)=>{
+    const slide=document.createElement('div');slide.className='carousel-slide';
+    const img=ROLE_IMG[role.id]?'<img class="rc-img" src="/img/'+ROLE_IMG[role.id]+'.png" alt="'+role.name+'">':'';
+    const btn=me&&me.roleId?'<button disabled>選択済み</button>':'<button class="pri" onclick="socket.emit(\'selectRole\',{roleId:\''+role.id+'\'})">この役職を選ぶ</button>';
+    slide.innerHTML='<div class="rc-card">'+img+'<div class="rc-name">'+role.name+'</div><div class="rc-desc">'+role.description+'</div>'+btn+'</div>';
+    track.appendChild(slide);
+    const dot=document.createElement('div');dot.className='dot'+(i===carIndex?' active':'');
+    dot.onclick=()=>{carIndex=i;updateCarousel();};
+    dots.appendChild(dot);
+  });
+  updateCarousel();
   $('roleSelectedMsg').textContent='選択済み: '+r.players.filter(p=>p.roleId).length+' / '+r.players.length+' 人';
 }
+
+function updateCarousel(){
+  $('carTrack').style.transform='translateX(-'+carIndex*100+'%)';
+  const dots=$('carDots').querySelectorAll('.dot');
+  dots.forEach((d,i)=>d.classList.toggle('active',i===carIndex));
+}
+$('carPrev').onclick=()=>{const len=$('carTrack').children.length;carIndex=(carIndex-1+len)%len;updateCarousel();};
+$('carNext').onclick=()=>{const len=$('carTrack').children.length;carIndex=(carIndex+1)%len;updateCarousel();};
 
 function renderPowerReveal(r){
   const me=r.players.find(p=>p.id===myId);
@@ -538,7 +619,9 @@ function renderGame(r){
     let badges='';
     if(p.id===r.currentTurnId) badges+='<span class="tb">手番</span>';
     if(p.incapacitatedTurns>0) badges+='<span class="db">不能('+p.incapacitatedTurns+')</span>';
-    d.innerHTML='<div class="p-name"><span class="p-dot" style="background:'+p.color+'"></span>'+(p.id===myId?'<b class="me">'+p.name+'</b>':p.name)+badges+'</div>'
+    const roleImgSrc=p.roleId&&ROLE_ICON[p.roleId]?'/img/'+ROLE_ICON[p.roleId]+'.png':'';
+    const roleImgTag=roleImgSrc?'<img class="p-card-img" src="'+roleImgSrc+'">':'';
+    d.innerHTML='<div class="p-name">'+roleImgTag+'<span class="p-dot" style="background:'+p.color+'"></span>'+(p.id===myId?'<b class="me">'+p.name+'</b>':p.name)+badges+'</div>'
       +'<div class="sr"><span class="role-tip" data-tip="'+escHtml(getRoleDesc(p.roleName,r))+'">'+p.roleName+'</span>'
       +(p.id===myId?' / '+(p.powers.map(pw=>pw.name!=='???'?'<span class="role-tip" data-tip="'+escHtml(pw.description+'\nコスト: PSY '+pw.cost+' ['+timingLabel(pw.timing)+']')+'">'+pw.name+(pw.evolved?' ★':'')+'</span>':pw.name).join(', ')||'-'):' / ???')+'</div>'
       +'<div class="sr">HP '+p.hp+'/'+p.maxHp+'</div>'+bar(p.hp,p.maxHp,'bar-hp')
@@ -554,10 +637,12 @@ function renderGame(r){
   if(isMyTurn){
     const me=r.players.find(p=>p.id===myId);
     const acted=me.actionTaken;
-    // ボタン表示制御: 行動前は振る・休息を表示、行動後は非表示
+    // ボタン表示制御
     $('rollBtn').style.display=acted?'none':'block';
     $('restBtn').style.display=acted?'none':'block';
-    $('endTurnBtn').style.display=acted?'block':'none';
+    $('endTurnBtn').style.display=(acted&&!pathBattleUI)?'block':'none';
+    // 奇術師のトリプルダイスボタン
+    $('tripleDiceBtn').style.display=(!acted&&me.canTripleDice)?'block':'none';
     // 超能力パネル更新
     const ap=$('abilityPanel');ap.innerHTML='';
     let anyUsable=false;
@@ -638,7 +723,7 @@ socket.on('diceRolled',(data)=>{
 function processNextDice(){
   if(diceQueue.length===0){diceProcessing=false;return;}
   diceProcessing=true;
-  const{playerId,baseRoll,bonus,total,startPos,finalPos:serverFinalPos,pathBattle}=diceQueue.shift();
+  const{playerId,baseRoll,bonus,total,startPos,finalPos:serverFinalPos,reroll,pathBattle,roleName,roleBonus,isGambler,tripleDice}=diceQueue.shift();
   const pl=currentRoom?currentRoom.players.find(p=>p.id===playerId):null;
   const nm=pl?pl.name:'?';
   frozenPositions={};
@@ -649,15 +734,66 @@ function processNextDice(){
   $('diceOverlay').style.display='flex';
   $('diceInfo').textContent='';$('diceShadow').style.display='block';
   pendingCellEvent=null;
-  const cube=mkCube($('diceWrap'));
   sfxDiceRoll();
-  rollAnim(cube,Math.min(6,Math.max(1,baseRoll)),1800,$('diceShadow'),()=>{
-    $('diceShadow').style.display='none';
-    $('diceInfo').innerHTML=nm+': 出目 '+baseRoll+(bonus?'<span class="bonus">超能力ボーナス +'+bonus+' → 合計 '+total+' マス</span>':'');
-    setTimeout(()=>{
+
+  const isTriple=tripleDice&&tripleDice.length===3;
+  $('singleDiceArea').style.display=isTriple?'none':'block';
+  $('tripleDiceArea').style.display=isTriple?'flex':'none';
+
+  if(isTriple){
+    const c1=mkCube($('diceWrap1')),c2=mkCube($('diceWrap2')),c3=mkCube($('diceWrap3'));
+    let done=0;
+    function onTripleDone(){
+      if(++done<3) return;
+      $('diceShadow').style.display='none';
+      let infoHtml=nm+': <span style="color:var(--vio);font-weight:700;">トリプルダイス!</span> ('+tripleDice[0]+'+'+tripleDice[1]+'+'+tripleDice[2]+'='+baseRoll+')';
+      if(roleBonus) infoHtml+=' <span style="color:#22d3ee;font-size:.8em;">'+roleName+'ボーナス +'+roleBonus+'</span>';
+      infoHtml+=' → <b>'+total+'マス</b>';
+      $('diceInfo').innerHTML=infoHtml;
+      afterDiceDisplay();
+    }
+    rollAnim(c1,Math.min(6,Math.max(1,tripleDice[0])),1800+Math.random()*200,null,onTripleDone);
+    rollAnim(c2,Math.min(6,Math.max(1,tripleDice[1])),1800+Math.random()*200,null,onTripleDone);
+    rollAnim(c3,Math.min(6,Math.max(1,tripleDice[2])),1800+Math.random()*200,null,onTripleDone);
+  } else {
+    const cube=mkCube($('diceWrap'));
+    rollAnim(cube,Math.min(6,Math.max(1,baseRoll)),1800,$('diceShadow'),()=>{
+      $('diceShadow').style.display='none';
+      let infoHtml=nm+': 出目 '+baseRoll;
+      if(isGambler) infoHtml+=' <span style="color:#ff6b6b;font-size:.8em;">(ギャンブラー効果)</span>';
+      if(roleBonus) infoHtml+=' <span style="color:#22d3ee;font-size:.8em;">'+roleName+'ボーナス +'+roleBonus+'</span>';
+      if(bonus && bonus!==(roleBonus||0)) infoHtml+=' <span class="bonus">能力ボーナス +'+(bonus-(roleBonus||0))+'</span>';
+      infoHtml+=' → <b>'+total+'マス</b>';
+      $('diceInfo').innerHTML=infoHtml;
+      afterDiceDisplay();
+    });
+  }
+
+  function afterDiceDisplay(){
+    const isMyTurn=playerId===myId;
+    const me=currentRoom?currentRoom.players.find(p=>p.id===myId):null;
+    const canReroll=isMyTurn && me && me.canReroll && !reroll && !isTriple;
+    if(canReroll){
+      $('rerollArea').style.display='block';
+      $('rerollBtn').onclick=()=>{
+        $('rerollArea').style.display='none';
+        $('diceOverlay').style.display='none';
+        mapFrozen=false;
+        diceProcessing=false;
+        socket.emit('rerollDice');
+      };
+      $('rerollSkipBtn').onclick=()=>{
+        $('rerollArea').style.display='none';
+        proceedAfterDice();
+      };
+    } else {
+      $('rerollArea').style.display='none';
+      setTimeout(proceedAfterDice,1200);
+    }
+
+    function proceedAfterDice(){
       $('diceOverlay').style.display='none';
       mapFrozen=false;
-      const isMyTurn=playerId===myId;
       const animTarget=(serverFinalPos!=null&&!isMyTurn)?serverFinalPos:Math.min(startPos+total,currentRoom?currentRoom.boardSize:34);
 
       animateTokenMove(playerId, startPos, animTarget, currentRoom,
@@ -674,7 +810,6 @@ function processNextDice(){
         },
         ()=>{
           if(isMyTurn){socket.emit('confirmMove');}
-          // パス上戦闘がある場合は移動完了後に戦闘演出を再生
           if(pathBattle){
             setTimeout(()=>{
               showBattleAnim(pathBattle,()=>{
@@ -686,9 +821,9 @@ function processNextDice(){
           }
         }
       );
-    },1200);
-  });
-}
+    } // end proceedAfterDice
+  } // end afterDiceDisplay
+} // end processNextDice
 
 // セルイベント結果（アニメーション完了後に表示）
 let pendingCellEvent=null;

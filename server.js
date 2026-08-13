@@ -105,6 +105,10 @@ function publicPlayer(p) {
     powersConfirmed: !!p.powersConfirmed,
     usedTimings: p.usedTimings || [],
     battleDoneThisTurn: !!p.battleDoneThisTurn,
+    hasRerolledThisTurn: !!p.hasRerolledThisTurn,
+    hasUsedTripleDice: !!p.hasUsedTripleDice,
+    canReroll: !!(p.role && p.role.passive && p.role.passive.rerollPerTurn && !p.hasRerolledThisTurn),
+    canTripleDice: !!(p.role && p.role.passive && p.role.passive.tripleDicePerMap && !p.hasUsedTripleDice),
     xp: p.xp || 0,
     level: p.level || 0,
     xpToNext: LEVEL_XP ? ((p.level || 0) < MAX_LEVEL ? (LEVEL_XP[(p.level || 0) + 1] || 80) : (LEVEL_XP[MAX_LEVEL] || 300)) : 80,
@@ -175,7 +179,7 @@ function removePlayerFromRoom(room, socketId) {
 
 function initPlayerForGame(p) {
   const passive = p.role.passive || {};
-  p.maxHp = BASE_MAX_HP;
+  p.maxHp = BASE_MAX_HP + (passive.maxHpBonus || 0);
   p.maxEnergy = BASE_MAX_ENERGY + (passive.maxEnergyBonus || 0);
   p.hp = p.maxHp;
   p.energy = p.maxEnergy;
@@ -194,6 +198,8 @@ function initPlayerForGame(p) {
   p.hasBarrier = false;
   p.usedTimings = [];
   p.battleDoneThisTurn = false;
+  p.hasRerolledThisTurn = false;
+  p.hasUsedTripleDice = false;
 }
 
 function applyDelta(room, p, delta) {
@@ -245,6 +251,7 @@ function resetTurnFlags(p) {
   p.pendingFixedMove = 0;
   p.usedTimings = [];
   p.battleDoneThisTurn = false;
+  p.hasRerolledThisTurn = false;
 }
 
 function applyRegen(room, p) {
@@ -259,11 +266,49 @@ function applyRegen(room, p) {
   p.energy = clamp(p.energy + energyGain, 0, p.maxEnergy);
 }
 
+// 共通戦闘処理: attacker=仕掛けた側, defender=仕掛けられた側
+function executeBattle(room, attacker, defender, silent) {
+  const aP = attacker.role.passive || {};
+  const dP = defender.role.passive || {};
+  const aBonus = (aP.battleDiceBonus || 0) + (aP.attackDiceBonus || 0);
+  const dBonus = (dP.battleDiceBonus || 0) + (dP.defendDiceBonus || 0) - (dP.defendDicePenalty || 0);
+  const debuff = attacker.pendingBattleDebuff || 0;
+  attacker.pendingBattleDebuff = 0;
+
+  const rollA = Math.max(0, Math.floor(Math.random() * 6) + 1 + aBonus);
+  const rollB = Math.max(0, Math.floor(Math.random() * 6) + 1 + dBonus - debuff);
+
+  addLog(room, `戦闘: ${attacker.name}(${rollA}) vs ${defender.name}(${rollB})`);
+  const battleData = { aId: attacker.id, aName: attacker.name, aRoll: rollA, bId: defender.id, bName: defender.name, bRoll: rollB };
+  if (!silent) io.to(room.id).emit('battleRolled', battleData);
+
+  if (rollA > rollB) {
+    const dmg = Math.max(0, BATTLE_DAMAGE + (aP.battleDamageBonus || 0) - (dP.battleDamageReduction || 0));
+    applyDelta(room, defender, { hp: -dmg });
+    addLog(room, `${defender.name} は戦闘に敗れ、体力を${dmg}失った`);
+    grantXP(room, attacker, XP_BATTLE_WIN, '戦闘勝利');
+    grantXP(room, defender, XP_BATTLE_LOSE, '戦闘敗北');
+  } else if (rollB > rollA) {
+    const dmg = Math.max(0, BATTLE_DAMAGE + (dP.battleDamageBonus || 0) - (aP.battleDamageReduction || 0));
+    applyDelta(room, attacker, { hp: -dmg });
+    addLog(room, `${attacker.name} は戦闘に敗れ、体力を${dmg}失った`);
+    grantXP(room, attacker, XP_BATTLE_LOSE, '戦闘敗北');
+    grantXP(room, defender, XP_BATTLE_WIN, '戦闘勝利');
+  } else {
+    addLog(room, '戦闘は引き分けに終わった');
+    grantXP(room, attacker, XP_BATTLE_DRAW, '戦闘引き分け');
+    grantXP(room, defender, XP_BATTLE_DRAW, '戦闘引き分け');
+  }
+  return battleData;
+}
+
 function grantXP(room, p, amount, reason) {
   if (!amount || amount <= 0) return;
-  p.xp = (p.xp || 0) + amount;
-  console.log(`[XP] ${p.name}: +${amount} (${reason}) → 合計 ${p.xp}`);
-  addLog(room, `${p.name} は${reason}で経験値${amount}を得た`);
+  const mult = (p.role && p.role.passive && p.role.passive.xpMultiplier) || 1;
+  const final = Math.ceil(amount * mult);
+  p.xp = (p.xp || 0) + final;
+  console.log(`[XP] ${p.name}: +${final} (${reason}) → 合計 ${p.xp}`);
+  addLog(room, `${p.name} は${reason}で経験値${final}を得た`);
   checkLevelUp(room, p);
 }
 
@@ -378,8 +423,14 @@ function botTakeTurn(room, bot) {
     if (bot.pendingFixedMove) {
       baseRoll = bot.pendingFixedMove; bonus = 0; roll = baseRoll; bot.pendingFixedMove = 0;
     } else {
+      const bPassive = bot.role.passive || {};
       baseRoll = Math.floor(Math.random() * 6) + 1;
-      bonus = bot.pendingDiceBonus || 0; roll = baseRoll + bonus;
+      if (bPassive.gamblerEffect) {
+        if (baseRoll % 2 === 1) baseRoll = Math.max(0, baseRoll - 3);
+        else baseRoll = baseRoll + 3;
+      }
+      bonus = (bot.pendingDiceBonus || 0) + (bPassive.moveDiceBonus || 0);
+      roll = Math.max(0, baseRoll + bonus);
     }
     bot.pendingDiceBonus = 0;
     bot.actionTaken = true;
@@ -399,19 +450,10 @@ function botTakeTurn(room, bot) {
         bot.position = pos;
         bot.battleDoneThisTurn = true;
         bot.lastPathBattle = { opponentId: opp.id, position: pos };
-        const aB = (bot.role.passive || {}).battleDiceBonus || 0;
-        const bB = (opp.role.passive || {}).battleDiceBonus || 0;
-        const rA = Math.max(0, Math.floor(Math.random() * 6) + 1 + aB);
-        const rB = Math.max(0, Math.floor(Math.random() * 6) + 1 + bB);
         addLog(room, `${bot.name} が移動中に ${opp.name} に戦闘を仕掛けた`);
-        addLog(room, `戦闘: ${bot.name}(${rA}) vs ${opp.name}(${rB})`);
-        // battleRolledは送信しない — diceRolledのpathBattleに含める
-        if (rA > rB) { applyDelta(room, opp, { hp: -BATTLE_DAMAGE }); addLog(room, `${opp.name} は戦闘に敗れ、体力を${BATTLE_DAMAGE}失った`); grantXP(room, bot, XP_BATTLE_WIN, '戦闘勝利'); grantXP(room, opp, XP_BATTLE_LOSE, '戦闘敗北'); }
-        else if (rB > rA) { applyDelta(room, bot, { hp: -BATTLE_DAMAGE }); addLog(room, `${bot.name} は戦闘に敗れ、体力を${BATTLE_DAMAGE}失った`); grantXP(room, bot, XP_BATTLE_LOSE, '戦闘敗北'); grantXP(room, opp, XP_BATTLE_WIN, '戦闘勝利'); }
-        else { addLog(room, '戦闘は引き分けに終わった'); grantXP(room, bot, XP_BATTLE_DRAW, '戦闘引き分け'); grantXP(room, opp, XP_BATTLE_DRAW, '戦闘引き分け'); }
+        const bResult = executeBattle(room, bot, opp, true);
         battleOnPath = true; battlePos = pos;
-        grantXP(room, bot, step * XP_PER_TILE, 'マス移動');
-        room._botPathBattle = { aId: bot.id, aName: bot.name, aRoll: rA, bId: opp.id, bName: opp.name, bRoll: rB };
+        room._botPathBattle = bResult;
         break;
       }
       if (pos >= BOARD_SIZE) break;
@@ -442,8 +484,8 @@ function botTakeTurn(room, bot) {
       }
     } else {
       addLog(room, `${bot.name} はサイコロを振り、${roll}マス進む`);
-      const pb = room._botPathBattle || null;
-      delete room._botPathBattle;
+      grantXP(room, bot, (battlePos - startPos) * XP_PER_TILE, 'マス移動');
+      const pb = room._botPathBattle || null; delete room._botPathBattle;
       io.to(room.id).emit('diceRolled', { playerId: bot.id, baseRoll, bonus, total: roll, startPos, finalPos: battlePos, pathBattle: pb });
       broadcastRoom(room);
     }
@@ -681,16 +723,28 @@ io.on('connection', (socket) => {
     }
     if (player.actionTaken) return socket.emit('errorMsg', { message: 'このターンはすでに行動済みです' });
 
+    const passive = player.role.passive || {};
     let baseRoll, bonus, roll;
     if (player.pendingFixedMove) {
-      baseRoll = player.pendingFixedMove;
-      bonus = 0;
-      roll = baseRoll;
-      player.pendingFixedMove = 0;
+      baseRoll = player.pendingFixedMove; bonus = 0; roll = baseRoll; player.pendingFixedMove = 0;
     } else {
-      baseRoll = Math.floor(Math.random() * 6) + 1;
-      bonus = player.pendingDiceBonus || 0;
-      roll = baseRoll + bonus;
+      if (passive.tripleDicePerMap && player.useTripleDiceNow) {
+        const d1=Math.floor(Math.random()*6)+1, d2=Math.floor(Math.random()*6)+1, d3=Math.floor(Math.random()*6)+1;
+        baseRoll = d1+d2+d3;
+        player.hasUsedTripleDice = true;
+        player.useTripleDiceNow = false;
+        player._tripleDice = [d1,d2,d3];
+        addLog(room, `${player.name} はサイコロを3個振った！(${d1}+${d2}+${d3}=${baseRoll})`);
+      } else {
+        baseRoll = Math.floor(Math.random() * 6) + 1;
+      }
+      // ギャンブラー効果
+      if (passive.gamblerEffect) {
+        if (baseRoll % 2 === 1) { baseRoll = Math.max(0, baseRoll - 3); }
+        else { baseRoll = baseRoll + 3; }
+      }
+      bonus = (player.pendingDiceBonus || 0) + (passive.moveDiceBonus || 0);
+      roll = Math.max(0, baseRoll + bonus);
     }
     player.pendingDiceBonus = 0;
     player.actionTaken = true;
@@ -706,7 +760,50 @@ io.on('connection', (socket) => {
       bonus,
       total: roll,
       startPos: player.position,
+      roleName: player.role.name,
+      roleBonus: passive.moveDiceBonus || 0,
+      isGambler: !!passive.gamblerEffect,
+      tripleDice: player._tripleDice || null,
     });
+    player._tripleDice = null;
+    broadcastRoom(room);
+  });
+
+  socket.on('activateTripleDice', () => {
+    const room = findRoomBySocket(socket.id);
+    if (!room || room.phase !== 'playing') return;
+    const player = getPlayer(room, socket.id);
+    if (!player || room.turnOrder[room.turnIndex] !== socket.id) return;
+    if (player.actionTaken) return socket.emit('errorMsg', { message: 'すでに行動済みです' });
+    const passive = player.role.passive || {};
+    if (!passive.tripleDicePerMap || player.hasUsedTripleDice) return socket.emit('errorMsg', { message: 'トリプルダイスはすでに使用済みです' });
+    player.useTripleDiceNow = true;
+    addLog(room, `${player.name} はトリプルダイスを発動！`);
+    broadcastRoom(room);
+  });
+
+  socket.on('rerollDice', () => {
+    const room = findRoomBySocket(socket.id);
+    if (!room || room.phase !== 'playing') return;
+    const player = getPlayer(room, socket.id);
+    if (!player || room.turnOrder[room.turnIndex] !== socket.id) return;
+    if (!player.pendingMoveTotal) return socket.emit('errorMsg', { message: '振り直すサイコロがありません' });
+    const passive = player.role.passive || {};
+    if (!passive.rerollPerTurn || player.hasRerolledThisTurn) return socket.emit('errorMsg', { message: '振り直しはすでに使用済みです' });
+
+    player.hasRerolledThisTurn = true;
+    let baseRoll = Math.floor(Math.random() * 6) + 1;
+    if (passive.gamblerEffect) {
+      if (baseRoll % 2 === 1) baseRoll = Math.max(0, baseRoll - 3);
+      else baseRoll = baseRoll + 3;
+    }
+    const moveBonus = passive.moveDiceBonus || 0;
+    const roll = Math.max(0, baseRoll + moveBonus);
+    player.pendingMoveTotal = roll;
+    player.moveStartPos = player.position;
+
+    addLog(room, `${player.name} はサイコロを振り直した！ ${roll}マス進む`);
+    io.to(room.id).emit('diceRolled', { playerId: player.id, baseRoll, bonus: moveBonus, total: roll, startPos: player.position, reroll: true });
     broadcastRoom(room);
   });
 
@@ -730,7 +827,16 @@ io.on('connection', (socket) => {
     let cellEventLabel = null;
     let cellMoveDelta = 0;
     if (!player.finished) {
-      const event = pickWeightedCellEvent();
+      let event = pickWeightedCellEvent();
+      // 旅人のbadEventResist: 不利なイベントを50%の確率で無効化
+      const passive = player.role.passive || {};
+      if (passive.badEventResist) {
+        const delta = event.apply(player);
+        const isBad = (delta.hp && delta.hp < 0) || (delta.energy && delta.energy < 0) || (delta.move && delta.move < 0);
+        if (isBad && Math.random() < 0.5) {
+          event = { id: 'resist', label: '旅人の直感で危険を回避した', apply: () => ({}) };
+        }
+      }
       cellEventLabel = event.label;
       addLog(room, `${player.name} が止まったマス: ${event.label}`);
       const delta = event.apply(player);
@@ -774,12 +880,7 @@ io.on('connection', (socket) => {
     const rollB = Math.max(0, Math.floor(Math.random() * 6) + 1 + bBonus - debuff);
 
     addLog(room, `${player.name} が移動中に ${opponent.name} に戦闘を仕掛けた`);
-    addLog(room, `戦闘: ${player.name}(${rollA}) vs ${opponent.name}(${rollB})`);
-    io.to(room.id).emit('battleRolled', { aId: player.id, aName: player.name, aRoll: rollA, bId: opponent.id, bName: opponent.name, bRoll: rollB });
-
-    if (rollA > rollB) { applyDelta(room, opponent, { hp: -BATTLE_DAMAGE }); addLog(room, `${opponent.name} は戦闘に敗れ、体力を${BATTLE_DAMAGE}失った`); grantXP(room, player, XP_BATTLE_WIN, '戦闘勝利'); grantXP(room, opponent, XP_BATTLE_LOSE, '戦闘敗北'); }
-    else if (rollB > rollA) { applyDelta(room, player, { hp: -BATTLE_DAMAGE }); addLog(room, `${player.name} は戦闘に敗れ、体力を${BATTLE_DAMAGE}失った`); grantXP(room, player, XP_BATTLE_LOSE, '戦闘敗北'); grantXP(room, opponent, XP_BATTLE_WIN, '戦闘勝利'); }
-    else { addLog(room, '戦闘は引き分けに終わった'); grantXP(room, player, XP_BATTLE_DRAW, '戦闘引き分け'); grantXP(room, opponent, XP_BATTLE_DRAW, '戦闘引き分け'); }
+    executeBattle(room, player, opponent);
     const pathMoveSteps = position - (player.moveStartPos || 0);
     if (pathMoveSteps > 0) grantXP(room, player, pathMoveSteps * XP_PER_TILE, 'マス移動');
 
@@ -893,21 +994,8 @@ io.on('connection', (socket) => {
 
     // 即時戦闘
     player.battleDoneThisTurn = true;
-    const aBonus = (player.role.passive || {}).battleDiceBonus || 0;
-    const bBonus = (opponent.role.passive || {}).battleDiceBonus || 0;
-    const debuffOnOpponent = player.pendingBattleDebuff || 0;
-    player.pendingBattleDebuff = 0;
-
-    const rollA = Math.max(0, Math.floor(Math.random() * 6) + 1 + aBonus);
-    const rollB = Math.max(0, Math.floor(Math.random() * 6) + 1 + bBonus - debuffOnOpponent);
-
     addLog(room, `${player.name} が ${opponent.name} に戦闘を仕掛けた`);
-    addLog(room, `戦闘: ${player.name}(${rollA}) vs ${opponent.name}(${rollB})`);
-    io.to(room.id).emit('battleRolled', { aId: player.id, aName: player.name, aRoll: rollA, bId: opponent.id, bName: opponent.name, bRoll: rollB });
-
-    if (rollA > rollB) { applyDelta(room, opponent, { hp: -BATTLE_DAMAGE }); addLog(room, `${opponent.name} は戦闘に敗れ、体力を${BATTLE_DAMAGE}失った`); grantXP(room, player, XP_BATTLE_WIN, '戦闘勝利'); grantXP(room, opponent, XP_BATTLE_LOSE, '戦闘敗北'); }
-    else if (rollB > rollA) { applyDelta(room, player, { hp: -BATTLE_DAMAGE }); addLog(room, `${player.name} は戦闘に敗れ、体力を${BATTLE_DAMAGE}失った`); grantXP(room, player, XP_BATTLE_LOSE, '戦闘敗北'); grantXP(room, opponent, XP_BATTLE_WIN, '戦闘勝利'); }
-    else { addLog(room, '戦闘は引き分けに終わった'); grantXP(room, player, XP_BATTLE_DRAW, '戦闘引き分け'); grantXP(room, opponent, XP_BATTLE_DRAW, '戦闘引き分け'); }
+    executeBattle(room, player, opponent);
 
     broadcastRoom(room);
   });

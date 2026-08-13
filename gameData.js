@@ -1,8 +1,21 @@
 // 役職（永続パッシブ）
 const ROLES = [
-  { id: 'warrior', name: '戦士', description: '戦闘のサイコロ出目に+1', passive: { battleDiceBonus: 1 } },
-  { id: 'scholar', name: '学者', description: 'サイコエナジー最大値+3、ターン回復量+1', passive: { maxEnergyBonus: 3, energyRegenBonus: 1 } },
-  { id: 'healer', name: '治療師', description: '体力のターン回復量+1', passive: { hpRegenBonus: 1 } },
+  { id: 'traveler', name: '旅人', description: '移動時のサイコロの目+2、マス目の不利な効果を負いづらくなる。',
+    passive: { moveDiceBonus: 2, badEventResist: true } },
+  { id: 'professor', name: '教授', description: '経験値の入手量が1.5倍(切り上げ)、サイコエナジー上限+2、サイコエナジーのターン回復量+1',
+    passive: { xpMultiplier: 1.5, maxEnergyBonus: 2, energyRegenBonus: 1 } },
+  { id: 'veteran', name: '退役軍人', description: '戦闘時のサイコロの目+2、HP上限+3、戦闘時の相手へのダメージ+2。',
+    passive: { battleDiceBonus: 2, maxHpBonus: 3, battleDamageBonus: 2 } },
+  { id: 'farmer', name: '農夫', description: 'ターン回復量+2、HP上限+5、戦闘時に受けるダメージ-2。',
+    passive: { hpRegenBonus: 2, maxHpBonus: 5, battleDamageReduction: 2 } },
+  { id: 'sheriff', name: '保安官', description: 'HP上限+3、相手から戦闘を仕掛けられた場合、サイコロの目+4。戦闘時の相手へのダメージ+2。',
+    passive: { maxHpBonus: 3, defendDiceBonus: 4, battleDamageBonus: 2 } },
+  { id: 'assassin', name: 'アサシン', description: '移動時のサイコロの目+1。自分から戦闘を仕掛けた場合サイコロの目+5、相手から仕掛けられた場合-1。戦闘時の相手へのダメージ+1。',
+    passive: { moveDiceBonus: 1, attackDiceBonus: 5, defendDicePenalty: 1, battleDamageBonus: 1 } },
+  { id: 'illusionist', name: '奇術師', description: '1ターンに1回、サイコロを振り直す事ができる。1マップに1回、サイコロを3個同時に振ることが出来る。',
+    passive: { rerollPerTurn: true, tripleDicePerMap: true } },
+  { id: 'gambler', name: 'ギャンブラー', description: 'サイコロの目が奇数の場合-3,サイコロの目が偶数の場合+3する。',
+    passive: { gamblerEffect: true } },
 ];
 
 // 超能力（アクティブ）— timing: 'anytime'=いつでも, 'beforeMove'=移動前, 'battle'=戦闘時
