@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8"/>
+<title>サイキック・ロード — 超能力すごろく</title>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#110a22;--panel:#1a1240;--panel-line:#352a62;
+  --vio:#9b6bff;--teal:#2dd4bf;--gold:#f2b705;
+  --danger:#ef4576;--text:#ece7ff;--dim:#9a8fc4;
+  --fd:'Shippori Mincho',serif;--fb:'Zen Kaku Gothic New',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:var(--fb);background:radial-gradient(circle at 20% 0%,#241a4d,var(--bg) 55%);color:var(--text);}
+.wrap{max-width:1100px;margin:0 auto;padding:8px 12px;height:100vh;display:flex;flex-direction:column;}
+.top-bar{text-align:center;flex-shrink:0;padding-bottom:4px;}
+.top-bar h1{font-family:var(--fd);font-weight:700;letter-spacing:.08em;font-size:1.2rem;background:linear-gradient(90deg,var(--teal),var(--vio));-webkit-background-clip:text;background-clip:text;color:transparent;display:inline;}
+.top-bar .sub{color:var(--dim);font-size:.72em;margin-left:8px;}
+#error{color:var(--danger);font-size:.82em;text-align:center;min-height:1em;}
+/* --- panels --- */
+.panel{border:1px solid var(--panel-line);border-radius:10px;padding:12px;background:linear-gradient(180deg,rgba(255,255,255,.015),rgba(0,0,0,.1)),var(--panel);box-shadow:0 4px 16px rgba(0,0,0,.3);}
+input{padding:6px 10px;background:#13102a;border:1px solid var(--panel-line);border-radius:6px;color:var(--text);font-family:var(--fb);font-size:.85em;}
+input:focus{outline:none;border-color:var(--vio);}
+button{padding:6px 12px;cursor:pointer;margin:2px 4px 2px 0;background:linear-gradient(180deg,#4a3690,#362a6b);border:1px solid var(--panel-line);color:var(--text);border-radius:6px;font-family:var(--fb);font-size:.8em;font-weight:500;transition:transform .1s,box-shadow .1s;}
+button:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 3px 10px rgba(155,107,255,.3);}
+button:disabled{opacity:.3;cursor:not-allowed;}
+button.pri{background:linear-gradient(180deg,var(--teal),#1b9d8e);color:#06231f;border-color:transparent;font-weight:700;}
+button.dan{background:linear-gradient(180deg,var(--danger),#a82f52);border-color:transparent;}
+ul{list-style:none;padding:0;}
+h2{font-family:var(--fd);font-size:.95rem;color:var(--teal);margin-bottom:6px;}
+h3{font-family:var(--fd);font-size:.82rem;color:var(--dim);margin:8px 0 4px;}
+.me{font-weight:700;color:var(--teal);}
+.rdy{color:#6ee7a0;font-size:.78em;} .nrdy{color:var(--dim);font-size:.78em;}
+.tb{background:var(--gold);color:#3a2900;padding:1px 6px;border-radius:99px;font-size:.68em;font-weight:700;margin-left:4px;}
+.db{background:var(--danger);color:#fff;padding:1px 6px;border-radius:99px;font-size:.68em;font-weight:700;margin-left:4px;}
+.bar-bg{background:#0d0920;border-radius:4px;height:8px;width:100%;display:block;overflow:hidden;border:1px solid var(--panel-line);}
+.bar-hp{background:linear-gradient(90deg,#ef4576,#ff8a9c);height:100%;transition:width .4s;}
+.bar-en{background:linear-gradient(90deg,#2dd4bf,#7ee8f5);height:100%;transition:width .4s;}
+.bar-xp{background:linear-gradient(90deg,#f2b705,#ffd54f);height:100%;transition:width .4s;}
+.bar-bg-xp{background:#0d0920;border-radius:2px;height:3px;width:100%;display:block;overflow:hidden;border:1px solid var(--panel-line);}
+.lv{font-size:.7em;font-weight:700;color:var(--gold);margin-left:4px;}
+.sr{font-size:.72em;color:var(--dim);margin-top:1px;}
+/* pre-game centered */
+#entry,#lobby,#roleSelect,#finished{max-width:420px;margin:20px auto;}
+.role-card{border:1px solid var(--panel-line);border-radius:8px;padding:10px;margin-bottom:8px;background:rgba(255,255,255,.02);display:flex;justify-content:space-between;align-items:center;gap:10px;}
+/* ===== GAME LAYOUT (3-column) ===== */
+#game{display:none;flex:1;min-height:0;}
+.game-grid{display:grid;grid-template-columns:200px 1fr 200px;grid-template-rows:auto 1fr auto;gap:8px;height:100%;}
+.game-header{grid-column:1/4;display:flex;justify-content:center;align-items:baseline;gap:12px;}
+.game-header h2{margin:0;}
+.col-left{grid-column:1;grid-row:2;overflow-y:auto;display:flex;flex-direction:column;gap:6px;}
+.col-center{grid-column:2;grid-row:2;display:flex;align-items:center;justify-content:center;min-height:0;}
+.col-center canvas{border-radius:10px;border:1px solid var(--panel-line);box-shadow:0 4px 20px rgba(0,0,0,.5);max-width:100%;max-height:100%;object-fit:contain;}
+.col-right{grid-column:3;grid-row:2;overflow-y:auto;display:flex;flex-direction:column;gap:6px;}
+.game-footer{grid-column:1/4;grid-row:3;}
+.p-card{border:1px solid var(--panel-line);border-radius:8px;padding:8px;background:rgba(255,255,255,.02);}
+.p-name{font-size:.82em;display:flex;align-items:center;gap:4px;}
+.p-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+#log{max-height:100px;overflow-y:auto;background:#0d0920;padding:6px 8px;border-radius:8px;font-size:.72em;border:1px solid var(--panel-line);color:var(--dim);}
+#log div{margin-bottom:2px;line-height:1.3;}
+#log div:last-child{color:var(--text);}
+/* action buttons full width in right column */
+.col-right button{width:100%;text-align:center;margin:2px 0;}
+/* ability panel */
+#abilityPanel{border:1px solid var(--panel-line);border-radius:8px;padding:6px;background:var(--panel);margin:4px 0;}
+.ab-card{padding:6px 8px;border-radius:6px;margin-bottom:4px;cursor:pointer;border:1px solid var(--panel-line);transition:background .15s;}
+.ab-card:hover:not(.disabled){background:rgba(155,107,255,.12);}
+.ab-card.disabled{opacity:.35;cursor:not-allowed;}
+.ab-card .ab-name{font-size:.82em;font-weight:700;} .ab-card .ab-cost{font-size:.7em;color:var(--teal);margin-left:4px;}
+.ab-card .ab-desc{font-size:.7em;color:var(--dim);margin-top:1px;}
+.ab-card .ab-tag{font-size:.65em;padding:1px 4px;border-radius:3px;margin-left:4px;}
+.ab-card .ab-tag.evo{background:rgba(242,183,5,.2);color:var(--gold);}
+/* ability glow */
+button.ability-glow{animation:abglow 1.2s ease-in-out infinite alternate;border-color:var(--vio);}
+@keyframes abglow{from{box-shadow:0 0 4px rgba(155,107,255,.3);}to{box-shadow:0 0 14px rgba(155,107,255,.7),0 0 24px rgba(155,107,255,.3);}}
+/* power reveal cards */
+.pw-card{border:1px solid var(--panel-line);border-radius:8px;padding:10px;margin-bottom:8px;background:rgba(155,107,255,.05);}
+.pw-card .pw-name{font-weight:700;font-size:.95em;} .pw-card .pw-desc{font-size:.82em;color:var(--dim);margin-top:3px;}
+/* tooltip (global fixed element, JS-driven) */
+.role-tip{cursor:help;border-bottom:1px dotted var(--dim);}
+#tooltip{display:none;position:fixed;background:#1a1240;border:1px solid var(--panel-line);border-radius:6px;padding:8px 10px;font-size:.78em;color:var(--text);min-width:180px;max-width:280px;z-index:200;box-shadow:0 6px 20px rgba(0,0,0,.7);pointer-events:none;line-height:1.5;}
+/* ===== 3D DICE ===== */
+#diceOverlay,#battleOverlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:100;background:rgba(6,3,16,.55);}
+.dice-stage{display:flex;flex-direction:column;align-items:center;gap:6px;}
+.d3-wrap{width:120px;height:120px;perspective:400px;}
+.d3-wrap.sm{width:80px;height:80px;perspective:300px;}
+.d3-cube{width:100%;height:100%;position:relative;transform-style:preserve-3d;}
+.d3-face{position:absolute;width:100%;height:100%;display:flex;align-items:center;justify-content:center;border-radius:12px;background:linear-gradient(145deg,#f7f2e8,#e6ddd0);border:1.5px solid #c0b8a0;box-shadow:inset 2px 2px 6px rgba(255,255,255,.4),inset -2px -2px 6px rgba(0,0,0,.1);}
+.d3-wrap.sm .d3-face{border-radius:8px;border-width:1px;}
+.d3-face .pg{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);width:66%;height:66%;}
+.d3-face .pp{border-radius:50%;margin:auto;visibility:hidden;}
+.d3-wrap:not(.sm) .d3-face .pp{width:15px;height:15px;}
+.d3-wrap.sm .d3-face .pp{width:10px;height:10px;}
+.d3-face .pp.on{visibility:visible;background:radial-gradient(circle at 38% 32%,#666,#111);box-shadow:inset 0 1px 3px rgba(0,0,0,.7),0 0.5px 0 rgba(255,255,255,.15);}
+/* face positions — half of side = 60px for 120, 40px for 80 */
+.d3-wrap .fc1{transform:rotateY(0deg) translateZ(60px);}
+.d3-wrap .fc6{transform:rotateY(180deg) translateZ(60px);}
+.d3-wrap .fc3{transform:rotateY(90deg) translateZ(60px);}
+.d3-wrap .fc4{transform:rotateY(-90deg) translateZ(60px);}
+.d3-wrap .fc5{transform:rotateX(90deg) translateZ(60px);}
+.d3-wrap .fc2{transform:rotateX(-90deg) translateZ(60px);}
+.d3-wrap.sm .fc1{transform:rotateY(0deg) translateZ(40px);}
+.d3-wrap.sm .fc6{transform:rotateY(180deg) translateZ(40px);}
+.d3-wrap.sm .fc3{transform:rotateY(90deg) translateZ(40px);}
+.d3-wrap.sm .fc4{transform:rotateY(-90deg) translateZ(40px);}
+.d3-wrap.sm .fc5{transform:rotateX(90deg) translateZ(40px);}
+.d3-wrap.sm .fc2{transform:rotateX(-90deg) translateZ(40px);}
+.dice-shadow{width:80px;height:14px;background:radial-gradient(ellipse,rgba(0,0,0,.5),transparent 70%);border-radius:50%;margin:0 auto;}
+.dice-info{font-family:var(--fd);font-size:1.3em;color:var(--text);text-align:center;min-height:1.4em;margin-top:6px;}
+.dice-info .bonus{color:var(--teal);font-size:.85em;display:block;margin-top:3px;}
+.battle-stage{display:flex;flex-direction:column;align-items:center;gap:8px;}
+.battle-row{display:flex;align-items:center;gap:20px;}
+.battle-side{display:flex;flex-direction:column;align-items:center;gap:4px;}
+.battle-nm{font-size:.85em;color:var(--text);font-weight:500;}
+.battle-rn{font-family:var(--fd);font-size:1.4em;color:var(--gold);min-height:1.4em;}
+.battle-vs{font-family:var(--fd);font-size:1.4em;color:var(--gold);text-shadow:0 0 10px rgba(242,183,5,.5);}
+.battle-rt{font-family:var(--fd);font-size:1em;color:var(--gold);min-height:1.2em;}
+/* ターン開始バナー */
+#turnBanner{position:fixed;top:0;left:0;right:0;display:none;align-items:center;justify-content:center;z-index:90;pointer-events:none;}
+#turnBanner .tb-inner{font-family:var(--fd);font-size:1.3em;font-weight:700;color:var(--gold);background:linear-gradient(180deg,rgba(18,10,34,.92),rgba(18,10,34,.85));border-bottom:2px solid rgba(242,183,5,.4);padding:18px 40px;text-align:center;letter-spacing:.06em;text-shadow:0 0 16px rgba(242,183,5,.4);animation:tb-slide .5s ease-out;width:100%;}
+@keyframes tb-slide{from{opacity:0;transform:translateY(-20px);}to{opacity:1;transform:translateY(0);}}
+/* マスイベントバナー */
+#eventBanner{position:fixed;bottom:60px;left:50%;transform:translateX(-50%);display:none;z-index:90;pointer-events:none;}
+#eventBanner .ev-inner{font-family:var(--fd);font-size:1.15em;font-weight:500;color:var(--text);background:linear-gradient(180deg,rgba(18,10,34,.94),rgba(18,10,34,.88));border:1px solid var(--panel-line);border-radius:10px;padding:14px 28px;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,.6);animation:ev-pop .4s ease-out;}
+@keyframes ev-pop{from{opacity:0;transform:scale(.9);}to{opacity:1;transform:scale(1);}}
+/* レベルアップバナー */
+#lvUpBanner{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);display:none;z-index:95;pointer-events:none;}
+#lvUpBanner .lvu-inner{font-family:var(--fd);font-size:1.5em;font-weight:700;color:var(--vio);background:linear-gradient(180deg,rgba(18,10,34,.95),rgba(18,10,34,.9));border:2px solid var(--vio);border-radius:14px;padding:20px 40px;text-align:center;box-shadow:0 0 30px rgba(155,107,255,.5);animation:lvu-pop .6s ease-out;}
+@keyframes lvu-pop{from{opacity:0;transform:scale(.7);}to{opacity:1;transform:scale(1);}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top-bar">
+    <h1>サイキック・ロード</h1><span class="sub">超能力者たちのすごろく</span>
+    <div id="error"></div>
+  </div>
+
+  <div id="entry" class="panel">
+    <div><input id="nameInput" placeholder="表示名"/></div>
+    <div style="margin-top:8px;"><button class="pri" id="createBtn">ロビーを作成</button></div>
+    <div style="margin-top:8px;"><input id="roomIdInput" placeholder="ロビーID"/><button id="joinBtn">参加</button></div>
+  </div>
+
+  <div id="lobby" class="panel" style="display:none;">
+    <h2>ロビー: <span id="roomIdLabel"></span></h2>
+    <ul id="playerList"></ul>
+    <button id="readyBtn">準備完了 / 解除</button>
+    <button class="pri" id="startBtn">ゲーム開始（ホスト）</button>
+    <button id="addBotBtn" style="margin-left:8px;">Bot追加</button>
+  </div>
+
+  <div id="roleSelect" class="panel" style="display:none;">
+    <h2>役職を選択</h2>
+    <div id="roleCards"></div>
+    <p id="roleSelectedMsg" style="color:var(--dim);font-size:.8em;"></p>
+  </div>
+
+  <div id="powerReveal" class="panel" style="display:none;">
+    <h2>覚醒した超能力</h2>
+    <p style="color:var(--dim);font-size:.82em;margin-bottom:8px;">あなたに割り当てられた超能力です。確認したら「確認完了」を押してください。</p>
+    <div id="powerRevealList"></div>
+    <button class="pri" id="confirmPowersBtn" style="margin-top:10px;">確認完了</button>
+    <p id="powerConfirmMsg" style="color:var(--dim);font-size:.8em;margin-top:6px;"></p>
+  </div>
+
+  <div id="game">
+    <div class="game-grid">
+      <div class="game-header">
+        <h2>ラウンド <span id="roundLabel"></span></h2>
+      </div>
+
+      <div class="col-left" id="colLeft"></div>
+
+      <div class="col-center">
+        <canvas id="mapCanvas"></canvas>
+      </div>
+
+      <div class="col-right" id="colRight">
+        <div id="myTurnControls" style="display:none;">
+          <div style="color:var(--gold);font-weight:700;font-size:.85em;margin-bottom:4px;">あなたの番です</div>
+          <button class="pri" id="rollBtn">サイコロを振る</button>
+          <button id="restBtn">休息する</button>
+          <button id="abilityBtn">超能力を使う ▼</button>
+          <div id="abilityPanel" style="display:none;"></div>
+          <div id="battleTargets"></div>
+          <button class="dan" id="endTurnBtn">ターン終了</button>
+        </div>
+        <h3>ログ</h3>
+        <div id="log"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="finished" class="panel" style="display:none;">
+    <h2>ゲーム終了</h2>
+    <p id="winnerMsg" style="font-family:var(--fd);font-size:1.1em;color:var(--gold);"></p>
+    <button class="pri" id="backToTopBtn" style="margin-top:12px;">トップに戻る</button>
+  </div>
+</div>
+
+<!-- turn banner -->
+<div id="turnBanner"><div class="tb-inner" id="turnBannerText"></div></div>
+<div id="eventBanner"><div class="ev-inner" id="eventBannerText"></div></div>
+<div id="lvUpBanner"><div class="lvu-inner" id="lvUpText"></div></div>
+<div id="tooltip"></div>
+<!-- overlays -->
+<div id="diceOverlay">
+  <div class="dice-stage">
+    <div class="d3-wrap" id="diceWrap"></div>
+    <div class="dice-shadow" id="diceShadow"></div>
+    <div class="dice-info" id="diceInfo"></div>
+  </div>
+</div>
+<div id="battleOverlay">
+  <div class="battle-stage">
+    <div class="battle-row">
+      <div class="battle-side"><div class="battle-nm" id="btAN"></div><div class="d3-wrap sm" id="btSA"></div><div class="battle-rn" id="btRA"></div></div>
+      <div class="battle-vs">VS</div>
+      <div class="battle-side"><div class="battle-nm" id="btBN"></div><div class="d3-wrap sm" id="btSB"></div><div class="battle-rn" id="btRB"></div></div>
+    </div>
+    <div class="battle-rt" id="btRT"></div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const socket=io();
+let myId=null,currentRoom=null;
+socket.on('connect',()=>{myId=socket.id;});
+
+/* ========== SOUND ENGINE ========== */
+let audioCtx=null;
+function getAudio(){if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}
+const SFX_VOL=0.25;
+function playFile(src,vol){
+  const a=new Audio(src);a.volume=vol||SFX_VOL;a.play().catch(()=>{});
+}
+function sfxDiceRoll(){playFile('/sfx/dice_single.mp3',SFX_VOL);}
+function sfxBattle(){playFile('/sfx/dice_double.mp3',SFX_VOL);}
+function sfxMagic(){playFile(Math.random()<0.5?'/sfx/magic1.mp3':'/sfx/magic2.mp3',SFX_VOL);}
+function sfxAbilityOpen(){playFile('/sfx/select_open.mp3',SFX_VOL);}
+function sfxAbilityPick(){playFile('/sfx/select_pick.mp3',SFX_VOL);}
+function sfxStep(){
+  try{const ctx=getAudio();const o=ctx.createOscillator();const g=ctx.createGain();
+  o.type='sine';o.frequency.value=600;g.gain.setValueAtTime(0.12,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.08);
+  o.connect(g);g.connect(ctx.destination);o.start();o.stop(ctx.currentTime+0.08);}catch(e){}
+}
+function sfxEvent(){
+  try{const ctx=getAudio();[523,659,784].forEach((f,i)=>{const o=ctx.createOscillator();const g=ctx.createGain();
+  o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0.1,ctx.currentTime+i*0.1);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+i*0.1+0.2);
+  o.connect(g);g.connect(ctx.destination);o.start(ctx.currentTime+i*0.1);o.stop(ctx.currentTime+i*0.1+0.2);});}catch(e){}
+}
+function sfxTurn(){
+  try{const ctx=getAudio();const o=ctx.createOscillator();const g=ctx.createGain();
+  o.type='sine';o.frequency.setValueAtTime(440,ctx.currentTime);o.frequency.setValueAtTime(550,ctx.currentTime+0.1);
+  g.gain.setValueAtTime(0.1,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.25);
+  o.connect(g);g.connect(ctx.destination);o.start();o.stop(ctx.currentTime+0.25);}catch(e){}
+}
+function sfxVictory(){
+  try{const ctx=getAudio();[523,659,784,1047].forEach((f,i)=>{const o=ctx.createOscillator();const g=ctx.createGain();
+  o.type='triangle';o.frequency.value=f;g.gain.setValueAtTime(0.15,ctx.currentTime+i*0.15);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+i*0.15+0.4);
+  o.connect(g);g.connect(ctx.destination);o.start(ctx.currentTime+i*0.15);o.stop(ctx.currentTime+i*0.15+0.4);});}catch(e){}
+}
+
+/* ========== 3D DICE ========== */
+const PIPS={1:[5],2:[3,7],3:[3,5,7],4:[1,3,7,9],5:[1,3,5,7,9],6:[1,3,4,6,7,9]};
+const FROT={1:{x:0,y:0},2:{x:90,y:0},3:{x:0,y:-90},4:{x:0,y:90},5:{x:-90,y:0},6:{x:0,y:180}};
+
+function mkCube(wrap){
+  wrap.innerHTML='';
+  const cube=document.createElement('div');
+  cube.className='d3-cube';
+  for(let n=1;n<=6;n++){
+    const f=document.createElement('div');
+    f.className='d3-face fc'+n;
+    const g=document.createElement('div');g.className='pg';
+    const on=new Set(PIPS[n]);
+    for(let i=1;i<=9;i++){const p=document.createElement('div');p.className='pp'+(on.has(i)?' on':'');g.appendChild(p);}
+    f.appendChild(g);cube.appendChild(f);
+  }
+  wrap.appendChild(cube);
+  return cube;
+}
+
+function rollAnim(cube,val,dur,shEl,cb){
+  const tgt=FROT[val];
+  const sx=Math.random()*360,sy=Math.random()*360,sz=Math.random()*180;
+  const ex=(3+Math.floor(Math.random()*2))*360+tgt.x;
+  const ey=(3+Math.floor(Math.random()*2))*360+tgt.y;
+  const ez=(1+Math.floor(Math.random()*2))*360;
+  const t0=performance.now();
+  cube.style.transition='none';
+  (function frame(now){
+    const p=Math.min((now-t0)/dur,1);
+    let e=p<.6?1-Math.pow(1-p/.6,3.5):1+Math.sin((p-.6)/.4*Math.PI*3)*.02*(1-p);
+    const rx=sx+(ex-sx)*e,ry=sy+(ey-sy)*e,rz=sz+(ez-sz)*e;
+    let bh=0;
+    if(p<.4) bh=Math.sin(p/.4*Math.PI)*60;
+    else if(p<.6) bh=Math.sin((p-.4)/.2*Math.PI)*20;
+    else if(p<.75) bh=Math.sin((p-.6)/.15*Math.PI)*7;
+    else if(p<.85) bh=Math.sin((p-.75)/.1*Math.PI)*2;
+    cube.style.transform='translateY('+ -bh +'px) rotateX('+rx+'deg) rotateY('+ry+'deg) rotateZ('+rz+'deg)';
+    if(shEl){const s=1-bh/80;shEl.style.transform='scaleX('+(0.4+s*.6)+')';shEl.style.opacity=(0.2+s*.5).toFixed(2);}
+    if(p<1) requestAnimationFrame(frame);
+    else{cube.style.transform='rotateX('+tgt.x+'deg) rotateY('+tgt.y+'deg)';if(cb)cb();}
+  })(t0);
+}
+
+/* ========== CANVAS MAP ========== */
+const COLS=7,CW=72,CH=66,PX=24,PY=20;
+const TERR=[
+  {bg:'#2e5a2a',glyph:'grass'},{bg:'#1e4828',glyph:'tree'},{bg:'#5a5468',glyph:'mtn'},
+  {bg:'#204870',glyph:'water'},{bg:'#4a3e58',glyph:'ruin'},{bg:'#2e2838',glyph:'cave'}
+];
+let cells=[];
+
+function cellXY(i){const r=Math.floor(i/COLS);let c=i%COLS;if(r%2===1)c=COLS-1-c;return{r,c};}
+function hex(ctx,cx,cy,rad){ctx.beginPath();for(let i=0;i<6;i++){const a=Math.PI/3*i-Math.PI/6;if(i===0)ctx.moveTo(cx+rad*Math.cos(a),cy+rad*Math.sin(a));else ctx.lineTo(cx+rad*Math.cos(a),cy+rad*Math.sin(a));}ctx.closePath();}
+function rng32(s){return()=>{s|=0;s=s+0x6D2B79F5|0;var t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+function drawMap(cv,rm,tokenPosOverride){
+  const tot=rm.boardSize+1,rows=Math.ceil(tot/COLS);
+  const W=COLS*CW+PX*2,H=rows*CH+PY*2;
+  cv.width=W*2;cv.height=H*2;cv.style.width=W+'px';cv.style.height=H+'px';
+  const c=cv.getContext('2d');c.scale(2,2);
+  // bg
+  const bg=c.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#150e2a');bg.addColorStop(1,'#0e0818');
+  c.fillStyle=bg;c.fillRect(0,0,W,H);
+  // stars
+  const rn=rng32(77);for(let i=0;i<60;i++){c.fillStyle='rgba(200,190,255,'+(rn()*.25+.08)+')';c.beginPath();c.arc(rn()*W,rn()*H,rn()*.7+.2,0,Math.PI*2);c.fill();}
+
+  cells=[];
+  for(let i=0;i<tot;i++){const{r,c:col}=cellXY(i);cells.push({x:PX+col*CW+CW/2,y:PY+r*CH+CH/2});}
+  // path
+  c.strokeStyle='rgba(155,107,255,.18)';c.lineWidth=2.5;c.setLineDash([5,4]);
+  for(let i=1;i<tot;i++){c.beginPath();c.moveTo(cells[i-1].x,cells[i-1].y);c.lineTo(cells[i].x,cells[i].y);c.stroke();}
+  c.setLineDash([]);
+  // cells
+  const R=25;
+  for(let i=0;i<tot;i++){
+    const{x:cx,y:cy}=cells[i];const isS=i===0,isG=i===rm.boardSize;const t=TERR[i%TERR.length];
+    c.fillStyle='rgba(0,0,0,.25)';hex(c,cx+1.5,cy+1.5,R);c.fill();
+    c.fillStyle=isS?'#186058':isG?'#5a4800':t.bg;hex(c,cx,cy,R);c.fill();
+    const ig=c.createRadialGradient(cx-3,cy-3,1,cx,cy,R);
+    ig.addColorStop(0,isS?'rgba(45,212,191,.25)':isG?'rgba(242,183,5,.35)':'rgba(255,255,255,.08)');ig.addColorStop(1,'transparent');
+    c.fillStyle=ig;hex(c,cx,cy,R);c.fill();
+    c.strokeStyle=isS?'#2dd4bf':isG?'#f2b705':'rgba(155,107,255,.3)';c.lineWidth=1.2;hex(c,cx,cy,R);c.stroke();
+    c.save();c.translate(cx,cy);
+    if(isS) drawStart(c); else if(isG) drawGoal(c); else drawTer(c,t.glyph);
+    c.restore();
+    c.fillStyle=isG?'#f2b705':isS?'#2dd4bf':'rgba(255,255,255,.35)';c.font='bold 7px sans-serif';c.textAlign='center';c.textBaseline='bottom';
+    c.fillText(isG?'GOAL':isS?'START':i,cx,cy+R-1);
+  }
+  // tokens — tokenPosOverride があればそちらを使う
+  const toff=[{dx:-8,dy:-7},{dx:8,dy:-7},{dx:-8,dy:7},{dx:8,dy:7}];
+  rm.players.forEach((p,idx)=>{
+    if(p.position==null) return;
+    const overPos=tokenPosOverride&&tokenPosOverride[p.id]!=null?tokenPosOverride[p.id]:p.position;
+    const ci=Math.min(overPos,rm.boardSize);
+    const{x:cx,y:cy}=cells[ci];const o=toff[idx%4];const tx=cx+o.dx,ty=cy+o.dy;
+    c.beginPath();c.arc(tx,ty,8,0,Math.PI*2);
+    c.fillStyle=p.incapacitatedTurns>0?'#555':p.color;c.fill();
+    c.strokeStyle=p.id===rm.currentTurnId?'#f2b705':'rgba(255,255,255,.75)';c.lineWidth=p.id===rm.currentTurnId?2.2:1.3;c.stroke();
+    if(p.id===rm.currentTurnId){c.beginPath();c.arc(tx,ty,11,0,Math.PI*2);c.strokeStyle='rgba(242,183,5,.3)';c.lineWidth=1.5;c.stroke();}
+    c.fillStyle='#fff';c.font='bold 8px sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillText(p.name.charAt(0),tx,ty);
+  });
+}
+
+// 駒の1マスずつ移動アニメーション
+let tokenAnim=null;
+let mapFrozen=false;
+let frozenPositions={};
+let pathBattleUI=false; // パス上戦闘選択UI表示中
+
+function animateTokenMove(playerId, fromPos, toPos, room, onStep, onDone){
+  if(tokenAnim&&tokenAnim.timer) clearTimeout(tokenAnim.timer);
+  const dir=toPos>fromPos?1:(toPos<fromPos?-1:0);
+  if(dir===0){if(onDone)onDone();return;}
+  let cur=fromPos;
+  tokenAnim={playerId, from:fromPos, to:toPos, current:cur, timer:null};
+
+  function step(){
+    cur+=dir;
+    tokenAnim.current=cur;
+    const override={};override[playerId]=cur;
+    drawMap($('mapCanvas'),currentRoom,override);
+    sfxStep();
+    // onStepでtrueが返ったら一時停止（戦闘選択）
+    if(onStep && onStep(cur)){
+      tokenAnim.paused=true;
+      tokenAnim.resumeFn=()=>{
+        if(cur===toPos){tokenAnim=null;if(onDone)onDone();}
+        else{tokenAnim.timer=setTimeout(step,450);}
+      };
+      return;
+    }
+    if(cur===toPos){tokenAnim=null;if(onDone)onDone();flushPendingCellEvent();}
+    else{tokenAnim.timer=setTimeout(step,450);}
+  }
+  tokenAnim.timer=setTimeout(step,300);
+}
+
+function showPathBattleChoice(pos, opponents){
+  const bt=$('battleTargets');bt.innerHTML='';
+  pathBattleUI=true;
+  // パス上戦闘選択中はターン終了を非表示
+  $('endTurnBtn').style.display='none';
+  const label=document.createElement('div');
+  label.style.cssText='font-size:.82em;color:var(--gold);margin-bottom:4px;font-weight:700;';
+  label.textContent='マス'+pos+'に他プレイヤーがいます。戦闘しますか？';
+  bt.appendChild(label);
+  opponents.forEach(o=>{
+    const b=document.createElement('button');b.className='dan';b.textContent=o.name+'に戦闘を仕掛ける';
+    b.onclick=()=>{
+      pathBattleUI=false;bt.innerHTML='';
+      // アニメーションを完全停止
+      if(tokenAnim){
+        if(tokenAnim.timer) clearTimeout(tokenAnim.timer);
+        tokenAnim=null;
+      }
+      // diceProcessingをリセットして次のダイスイベントを処理可能にする
+      setTimeout(()=>{diceProcessing=false;processNextDice();},3000);
+      socket.emit('battleOnPath',{position:pos,opponentId:o.id});
+    };
+    bt.appendChild(b);
+  });
+  const skip=document.createElement('button');skip.textContent='スルーして進む';
+  skip.onclick=()=>{
+    pathBattleUI=false;bt.innerHTML='';
+    if(tokenAnim&&tokenAnim.resumeFn) tokenAnim.resumeFn();
+  };
+  bt.appendChild(skip);
+}
+function drawTer(c,g){c.globalAlpha=.5;switch(g){
+  case'grass':for(let i=-1;i<=1;i++){c.strokeStyle='#7ac060';c.lineWidth=1;c.beginPath();c.moveTo(i*5,-1);c.quadraticCurveTo(i*5-1,-9,i*5+2,-12);c.stroke();}break;
+  case'tree':c.fillStyle='#2a7030';c.beginPath();c.moveTo(0,-13);c.lineTo(-7,-1);c.lineTo(7,-1);c.closePath();c.fill();c.beginPath();c.moveTo(0,-9);c.lineTo(-5,1);c.lineTo(5,1);c.closePath();c.fill();c.fillStyle='#6a4a30';c.fillRect(-1.2,1,2.4,5);break;
+  case'mtn':c.fillStyle='#7a7088';c.beginPath();c.moveTo(0,-12);c.lineTo(-10,3);c.lineTo(10,3);c.closePath();c.fill();c.fillStyle='#b8b0c8';c.beginPath();c.moveTo(0,-12);c.lineTo(-3,-5);c.lineTo(3,-5);c.closePath();c.fill();break;
+  case'water':c.strokeStyle='#5a9ed0';c.lineWidth=1.2;c.lineCap='round';for(let j=-1;j<=1;j++){c.beginPath();c.moveTo(-8,j*5);c.quadraticCurveTo(-2,j*5-3,0,j*5);c.quadraticCurveTo(2,j*5+3,8,j*5);c.stroke();}break;
+  case'ruin':c.fillStyle='#8a7a98';c.fillRect(-7,-7,3.5,14);c.fillRect(3.5,-7,3.5,12);c.fillRect(-7,-9,14,2.5);break;
+  case'cave':c.fillStyle='#3a3248';c.beginPath();c.arc(0,0,8,Math.PI,0);c.lineTo(8,5);c.lineTo(-8,5);c.closePath();c.fill();c.fillStyle='#16101e';c.beginPath();c.arc(0,2,4,Math.PI,0);c.lineTo(4,5);c.lineTo(-4,5);c.closePath();c.fill();break;
+}c.globalAlpha=1;}
+function drawStart(c){c.fillStyle='rgba(45,212,191,.45)';c.beginPath();c.arc(0,-3,6,0,Math.PI*2);c.fill();c.strokeStyle='#2dd4bf';c.lineWidth=1.3;c.beginPath();c.moveTo(-2,-5);c.lineTo(4,-3);c.lineTo(-2,-1);c.closePath();c.stroke();}
+function drawGoal(c){c.fillStyle='rgba(242,183,5,.55)';c.beginPath();for(let i=0;i<10;i++){const a=Math.PI/5*i-Math.PI/2,rr=i%2===0?9:3.5;if(i===0)c.moveTo(rr*Math.cos(a),rr*Math.sin(a)-3);else c.lineTo(rr*Math.cos(a),rr*Math.sin(a)-3);}c.closePath();c.fill();}
+
+/* ========== UI ========== */
+$('createBtn').onclick=()=>socket.emit('createRoom',{name:$('nameInput').value.trim()});
+$('joinBtn').onclick=()=>socket.emit('joinRoom',{roomId:$('roomIdInput').value.trim(),name:$('nameInput').value.trim()});
+$('readyBtn').onclick=()=>socket.emit('toggleReady');
+$('startBtn').onclick=()=>socket.emit('startGame');
+$('addBotBtn').onclick=()=>{console.log('addBot clicked');socket.emit('addBot');};
+$('rollBtn').onclick=()=>{
+  // diceProcessingがスタックしていたらリセット
+  if(diceProcessing && diceQueue.length===0 && !tokenAnim && !mapFrozen){diceProcessing=false;}
+  socket.emit('rollDice');
+};
+$('restBtn').onclick=()=>socket.emit('rest');
+$('abilityBtn').onclick=()=>{const p=$('abilityPanel');const show=p.style.display==='none';p.style.display=show?'block':'none';if(show)sfxAbilityOpen();};
+$('endTurnBtn').onclick=()=>socket.emit('endTurn');
+$('confirmPowersBtn').onclick=()=>socket.emit('confirmPowers');
+$('backToTopBtn').onclick=()=>{socket.emit('leaveRoom');location.reload();};
+socket.on('errorMsg',({message})=>{$('error').style.color='var(--danger)';$('error').textContent=message;setTimeout(()=>{$('error').textContent='';},3000);});
+socket.on('precognitionResult',({message})=>{$('error').style.color='var(--teal)';$('error').textContent=message;setTimeout(()=>{$('error').textContent='';},4000);});
+
+function bar(v,m,cls){return'<div class="bar-bg"><div class="'+cls+'" style="width:'+Math.max(0,Math.min(100,v/m*100))+'%"></div></div>';}
+function barXP(v,m){return'<div class="bar-bg-xp"><div class="bar-xp" style="width:'+Math.max(0,Math.min(100,v/m*100))+'%"></div></div>';}
+
+function renderLobby(r){
+  const ul=$('playerList');ul.innerHTML='';
+  r.players.forEach(p=>{const li=document.createElement('li');
+    li.innerHTML='<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+p.color+';margin-right:6px;"></span>'+(p.id===myId?'<b class="me">'+p.name+'</b>':p.name)+(p.id===r.hostId?' (ホスト)':'')+' <span class="'+(p.ready?'rdy':'nrdy')+'">'+(p.ready?'● 準備完了':'○ 未準備')+'</span>';
+    if(p.isBot&&myId===r.hostId){const rb=document.createElement('button');rb.textContent='✕';rb.style.cssText='margin-left:8px;padding:2px 6px;font-size:.7em;';rb.onclick=()=>socket.emit('removeBot',{botId:p.id});li.appendChild(rb);}
+    ul.appendChild(li);});
+}
+
+function renderRoleSelect(r){
+  const me=r.players.find(p=>p.id===myId);const c=$('roleCards');c.innerHTML='';
+  r.roles.forEach(role=>{const d=document.createElement('div');d.className='role-card';d.innerHTML='<div><strong>'+role.name+'</strong><br><span style="font-size:.8em;color:var(--dim);">'+role.description+'</span></div>';const b=document.createElement('button');b.textContent='選択';b.className='pri';b.disabled=!!(me&&me.roleId);b.onclick=()=>socket.emit('selectRole',{roleId:role.id});d.appendChild(b);c.appendChild(d);});
+  $('roleSelectedMsg').textContent='選択済み: '+r.players.filter(p=>p.roleId).length+' / '+r.players.length+' 人';
+}
+
+function renderPowerReveal(r){
+  const me=r.players.find(p=>p.id===myId);
+  const list=$('powerRevealList');list.innerHTML='';
+  if(me&&me.powers){
+    me.powers.forEach(pw=>{
+      const d=document.createElement('div');d.className='pw-card';
+      d.innerHTML='<div class="pw-name">'+pw.name+' <span style="font-size:.75em;color:var(--teal);">コスト:'+pw.cost+'</span> <span style="font-size:.7em;color:var(--dim);">['+timingLabel(pw.timing)+']</span></div><div class="pw-desc">'+pw.description+'</div>';
+      list.appendChild(d);
+    });
+  }
+  const confirmed=r.players.filter(p=>p.powersConfirmed).length;
+  $('powerConfirmMsg').textContent='確認済み: '+confirmed+' / '+r.players.length+' 人';
+  $('confirmPowersBtn').disabled=!!(me&&me.powersConfirmed);
+}
+
+function timingLabel(t){return t==='beforeMove'?'移動前':t==='battle'?'戦闘時':'いつでも';}
+function getRoleDesc(name,r){const role=(r.roles||[]).find(ro=>ro.name===name);return role?role.description:'';}
+function escHtml(s){return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+/* global tooltip */
+const tipEl=$('tooltip');
+document.addEventListener('mouseover',e=>{
+  const t=e.target.closest('.role-tip');
+  if(!t||!t.dataset.tip) return;
+  tipEl.innerHTML=t.dataset.tip.replace(/\n/g,'<br>');
+  tipEl.style.display='block';
+  const rect=t.getBoundingClientRect();
+  let top=rect.top-tipEl.offsetHeight-6;
+  let left=rect.left;
+  if(top<4){top=rect.bottom+6;}
+  if(left+tipEl.offsetWidth>window.innerWidth-8){left=window.innerWidth-tipEl.offsetWidth-8;}
+  tipEl.style.top=top+'px';
+  tipEl.style.left=Math.max(4,left)+'px';
+});
+document.addEventListener('mouseout',e=>{
+  if(e.target.closest('.role-tip')){tipEl.style.display='none';}
+});
+
+function renderGame(r){
+  // ダイスアニメ中・駒移動アニメ中はマップ再描画をスキップ
+  if(!mapFrozen && !tokenAnim){
+    drawMap($('mapCanvas'),r);
+  } else if(tokenAnim){
+    const override={};override[tokenAnim.playerId]=tokenAnim.current;
+    drawMap($('mapCanvas'),r,override);
+  } else if(mapFrozen){
+    drawMap($('mapCanvas'),r,frozenPositions);
+  }
+  // left column — player cards
+  const left=$('colLeft');left.innerHTML='';
+  r.players.forEach(p=>{
+    const d=document.createElement('div');d.className='p-card';
+    let badges='';
+    if(p.id===r.currentTurnId) badges+='<span class="tb">手番</span>';
+    if(p.incapacitatedTurns>0) badges+='<span class="db">不能('+p.incapacitatedTurns+')</span>';
+    d.innerHTML='<div class="p-name"><span class="p-dot" style="background:'+p.color+'"></span>'+(p.id===myId?'<b class="me">'+p.name+'</b>':p.name)+badges+'</div>'
+      +'<div class="sr"><span class="role-tip" data-tip="'+escHtml(getRoleDesc(p.roleName,r))+'">'+p.roleName+'</span>'
+      +(p.id===myId?' / '+(p.powers.map(pw=>pw.name!=='???'?'<span class="role-tip" data-tip="'+escHtml(pw.description+'\nコスト: PSY '+pw.cost+' ['+timingLabel(pw.timing)+']')+'">'+pw.name+(pw.evolved?' ★':'')+'</span>':pw.name).join(', ')||'-'):' / ???')+'</div>'
+      +'<div class="sr">HP '+p.hp+'/'+p.maxHp+'</div>'+bar(p.hp,p.maxHp,'bar-hp')
+      +'<div class="sr">PSY '+p.energy+'/'+p.maxEnergy+'</div>'+bar(p.energy,p.maxEnergy,'bar-en')
+      +'<div class="sr" style="color:var(--gold);">Lv.'+(p.level||0)+' EXP '+(p.xp||0)+'/'+(p.xpToNext||80)+'</div>'+barXP(p.xp||0,p.xpToNext||80)
+      +'<div class="sr">位置 '+p.position+'/'+r.boardSize+'</div>';
+    left.appendChild(d);
+  });
+  $('roundLabel').textContent=r.roundNumber;
+  // right column — controls
+  const isMyTurn=r.currentTurnId===myId;
+  $('myTurnControls').style.display=isMyTurn?'block':'none';
+  if(isMyTurn){
+    const me=r.players.find(p=>p.id===myId);
+    const acted=me.actionTaken;
+    // ボタン表示制御: 行動前は振る・休息を表示、行動後は非表示
+    $('rollBtn').style.display=acted?'none':'block';
+    $('restBtn').style.display=acted?'none':'block';
+    $('endTurnBtn').style.display=acted?'block':'none';
+    // 超能力パネル更新
+    const ap=$('abilityPanel');ap.innerHTML='';
+    let anyUsable=false;
+    if(me&&me.powers){
+      const usedT=me.usedTimings||[];
+      me.powers.forEach(pw=>{
+        const timingOk=(pw.timing==='anytime')||(pw.timing==='beforeMove'&&!acted)||(pw.timing==='battle'&&!acted);
+        const canUse=me.energy>=pw.cost && timingOk && !usedT.includes(pw.timing);
+        if(!canUse) return; // 使えない能力は表示しない
+        anyUsable=true;
+        const card=document.createElement('div');
+        card.className='ab-card';
+        let tags='';
+        if(pw.evolved) tags+='<span class="ab-tag evo">進化済</span>';
+        card.innerHTML='<div><span class="ab-name">'+pw.name+'</span><span class="ab-cost">PSY '+pw.cost+'</span> <span style="font-size:.65em;color:var(--dim);">['+timingLabel(pw.timing)+']</span>'+tags+'</div><div class="ab-desc">'+pw.description+'</div>';
+        card.onclick=()=>{sfxAbilityPick();sfxMagic();socket.emit('useAbility',{powerId:pw.id});ap.style.display='none';};
+        ap.appendChild(card);
+      });
+    }
+    // 超能力ボタンは常に表示、使える超能力がある場合は発光
+    $('abilityBtn').style.display='block';
+    $('abilityBtn').classList.toggle('ability-glow',anyUsable);
+    $('abilityBtn').disabled=!anyUsable;
+    // 戦闘ボタン: パス上戦闘UI表示中はそちらを優先
+    if(!pathBattleUI){
+      const others=acted&&me.position>0&&!me.battleDoneThisTurn&&!me.pendingMoveTotal
+        ? r.players.filter(p=>p.id!==myId&&p.position===me.position&&!p.finished&&p.incapacitatedTurns===0)
+        : [];
+      const bt=$('battleTargets');bt.innerHTML='';
+      others.forEach(o=>{const b=document.createElement('button');b.className='dan';b.textContent=o.name+'に戦闘を仕掛ける';b.onclick=()=>socket.emit('proposeBattle',{opponentId:o.id});bt.appendChild(b);});
+    }
+  }
+  const lg=$('log');lg.innerHTML=r.log.map(l=>'<div>'+l+'</div>').join('');lg.scrollTop=lg.scrollHeight;
+}
+
+socket.on('roomUpdate',r=>{
+  currentRoom=r;
+  $('entry').style.display='none';
+  $('lobby').style.display=r.phase==='lobby'?'block':'none';
+  $('roleSelect').style.display=r.phase==='roleSelect'?'block':'none';
+  $('powerReveal').style.display=r.phase==='powerReveal'?'block':'none';
+  $('game').style.display=(r.phase==='playing'||r.phase==='finished')?'grid':'none';
+  $('finished').style.display=r.phase==='finished'?'block':'none';
+  $('roomIdLabel').textContent=r.id;
+  if(r.phase==='lobby') renderLobby(r);
+  if(r.phase==='roleSelect') renderRoleSelect(r);
+  if(r.phase==='powerReveal') renderPowerReveal(r);
+  if(r.phase==='playing'||r.phase==='finished') renderGame(r);
+  if(r.phase==='finished'){const w=r.players.find(p=>p.id===r.winnerId);$('winnerMsg').textContent=w?w.name+' の勝利です！':'';sfxVictory();}
+});
+
+/* ---- TURN BANNER ---- */
+socket.on('turnStart',({playerId,playerName})=>{
+  sfxTurn();
+  const isMe=playerId===myId;
+  const txt=isMe?'あなたのターン':playerName+' のターン';
+  $('turnBannerText').textContent=txt;
+  $('turnBannerText').style.color=isMe?'var(--gold)':'var(--text)';
+  $('turnBanner').style.display='flex';
+  setTimeout(()=>{$('turnBanner').style.display='none';},1800);
+});
+
+socket.on('levelUp',({playerId,playerName,level})=>{
+  $('lvUpText').textContent=playerName+' Lv.'+level+'に到達！';
+  $('lvUpBanner').style.display='block';
+  setTimeout(()=>{$('lvUpBanner').style.display='none';},2500);
+});
+
+/* ---- DICE EVENTS (queue) ---- */
+let diceQueue=[];
+let diceProcessing=false;
+
+socket.on('diceRolled',(data)=>{
+  diceQueue.push(data);
+  if(!diceProcessing) processNextDice();
+});
+
+function processNextDice(){
+  if(diceQueue.length===0){diceProcessing=false;return;}
+  diceProcessing=true;
+  const{playerId,baseRoll,bonus,total,startPos,finalPos:serverFinalPos,pathBattle}=diceQueue.shift();
+  const pl=currentRoom?currentRoom.players.find(p=>p.id===playerId):null;
+  const nm=pl?pl.name:'?';
+  frozenPositions={};
+  if(currentRoom){currentRoom.players.forEach(p=>{frozenPositions[p.id]=p.position;});}
+  frozenPositions[playerId]=startPos;
+  mapFrozen=true;
+
+  $('diceOverlay').style.display='flex';
+  $('diceInfo').textContent='';$('diceShadow').style.display='block';
+  pendingCellEvent=null;
+  const cube=mkCube($('diceWrap'));
+  sfxDiceRoll();
+  rollAnim(cube,Math.min(6,Math.max(1,baseRoll)),1800,$('diceShadow'),()=>{
+    $('diceShadow').style.display='none';
+    $('diceInfo').innerHTML=nm+': 出目 '+baseRoll+(bonus?'<span class="bonus">超能力ボーナス +'+bonus+' → 合計 '+total+' マス</span>':'');
+    setTimeout(()=>{
+      $('diceOverlay').style.display='none';
+      mapFrozen=false;
+      const isMyTurn=playerId===myId;
+      const animTarget=(serverFinalPos!=null&&!isMyTurn)?serverFinalPos:Math.min(startPos+total,currentRoom?currentRoom.boardSize:34);
+
+      animateTokenMove(playerId, startPos, animTarget, currentRoom,
+        (curPos)=>{
+          if(!isMyTurn||curPos<=0||curPos===animTarget) return false;
+          const opps=(currentRoom?currentRoom.players:[]).filter(p=>
+            p.id!==playerId&&p.position===curPos&&!p.finished&&p.incapacitatedTurns===0
+          );
+          if(opps.length>0){
+            showPathBattleChoice(curPos,opps);
+            return true;
+          }
+          return false;
+        },
+        ()=>{
+          if(isMyTurn){socket.emit('confirmMove');}
+          // パス上戦闘がある場合は移動完了後に戦闘演出を再生
+          if(pathBattle){
+            setTimeout(()=>{
+              showBattleAnim(pathBattle,()=>{
+                setTimeout(()=>{diceProcessing=false;processNextDice();},2000);
+              });
+            },500);
+          } else {
+            setTimeout(()=>{diceProcessing=false;processNextDice();},2000);
+          }
+        }
+      );
+    },1200);
+  });
+}
+
+// セルイベント結果（アニメーション完了後に表示）
+let pendingCellEvent=null;
+
+socket.on('cellEventResult',({playerId,label,moveDelta,finalPos})=>{
+  pendingCellEvent={playerId,label,moveDelta,finalPos};
+  // アニメーション中でなければ即表示
+  if(!tokenAnim&&!mapFrozen){flushPendingCellEvent();}
+});
+
+function flushPendingCellEvent(){
+  if(!pendingCellEvent) return;
+  const{playerId,label,moveDelta,finalPos}=pendingCellEvent;
+  pendingCellEvent=null;
+  if(label) showEventBanner(label);
+  if(moveDelta&&moveDelta!==0){
+    const curPos=finalPos-moveDelta;
+    setTimeout(()=>{
+      animateTokenMove(playerId,curPos,finalPos,currentRoom,null,null);
+    },1500);
+  }
+}
+
+function showEventBanner(text){
+  sfxEvent();
+  $('eventBannerText').textContent=text;
+  $('eventBanner').style.display='block';
+  setTimeout(()=>{$('eventBanner').style.display='none';},2200);
+}
+
+function showBattleAnim({aId,aName,aRoll,bId,bName,bRoll},onDone){
+  $('btAN').textContent=aName;$('btBN').textContent=bName;
+  $('btRA').textContent='';$('btRB').textContent='';$('btRT').textContent='';
+  $('battleOverlay').style.display='flex';
+  sfxBattle();
+  const cA=mkCube($('btSA')),cB=mkCube($('btSB'));
+  let done=0;
+  function fin(){if(++done<2)return;$('btRA').textContent=aRoll;$('btRB').textContent=bRoll;
+    $('btRT').textContent=aRoll>bRoll?aName+' の勝利！':bRoll>aRoll?bName+' の勝利！':'引き分け';
+    setTimeout(()=>{$('battleOverlay').style.display='none';if(onDone)onDone();},2400);}
+  rollAnim(cA,Math.min(6,Math.max(1,aRoll)),1600+Math.random()*200,null,fin);
+  rollAnim(cB,Math.min(6,Math.max(1,bRoll)),1600+Math.random()*200,null,fin);
+}
+
+socket.on('battleRolled',(data)=>{
+  showBattleAnim(data);
+});
+</script>
+</body>
+</html>

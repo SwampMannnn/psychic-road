@@ -1,0 +1,14 @@
+{
+  "name": "board-game-app",
+  "version": "0.1.0",
+  "private": true,
+  "description": "オンライン対戦ターン制ボードゲーム 試作版（ロビー・ターン進行の枠組み）",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
+  }
+}
