@@ -282,8 +282,8 @@ function executeBattle(room, attacker, defender, silent) {
 
   addLog(room, `戦闘: ${attacker.name}(${rollA}) vs ${defender.name}(${rollB})`);
   const battleData = {
-    aId: attacker.id, aName: attacker.name, aDie: dieA, aRoll: rollA, aRoleName: attacker.role.name, aBonus,
-    bId: defender.id, bName: defender.name, bDie: dieB, bRoll: rollB, bRoleName: defender.role.name, bBonus: dBonus - debuff,
+    aId: attacker.id, aName: attacker.name, aDie: dieA, aRoll: rollA, aRoleName: attacker.role.name, aRoleId: attacker.role.id, aBonus,
+    bId: defender.id, bName: defender.name, bDie: dieB, bRoll: rollB, bRoleName: defender.role.name, bRoleId: defender.role.id, bBonus: dBonus - debuff,
   };
 
   if (rollA > rollB) {
@@ -506,7 +506,9 @@ function botTakeTurn(room, bot) {
     }
 
     const steps=Math.min(roll,BOARD_SIZE-startPos);
-    const animTime=1800+1200+300+steps*450+2500;
+    // ダイス演出3s + 移動(steps*0.45s+0.3s) + セルイベント2.5s + 戦闘時は追加7.5s
+    const battleExtra = battleOnPath ? 8000 : 0;
+    const animTime=1800+1200+300+steps*450+2500+battleExtra;
     setTimeout(() => botEndTurn(room, bot), animTime);
   }
 }

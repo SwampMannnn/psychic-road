@@ -136,6 +136,24 @@ button.ability-glow{animation:abglow 1.2s ease-in-out infinite alternate;border-
 .battle-rn{font-family:var(--fd);font-size:1.4em;color:var(--gold);min-height:1.4em;}
 .battle-bonus{font-size:.75em;color:#22d3ee;min-height:1.1em;}
 .battle-dmg{font-size:.85em;color:var(--dim);margin-top:4px;min-height:1.1em;}
+/* battle intro animation */
+#btIntro{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.bt-char{position:absolute;height:80vh;max-height:600px;object-fit:contain;filter:drop-shadow(0 0 20px rgba(0,0,0,.8));}
+.bt-char-left{left:-40%;animation:bt-slide-left .6s ease-out forwards;}
+.bt-char-right{right:-40%;animation:bt-slide-right .6s ease-out forwards;transform:scaleX(-1);}
+@keyframes bt-slide-left{to{left:10%;}}
+@keyframes bt-slide-right{to{right:10%;}}
+.bt-vs-text{position:relative;z-index:10;font-family:var(--fd);font-size:5em;font-weight:900;color:var(--gold);text-shadow:0 0 40px rgba(242,183,5,.6),0 0 80px rgba(242,183,5,.3),4px 4px 0 #3a2900;letter-spacing:.1em;animation:bt-vs-pop .4s .5s ease-out both;}
+@keyframes bt-vs-pop{from{opacity:0;transform:scale(3);}to{opacity:1;transform:scale(1);}}
+/* battle result labels */
+#btResultBanner{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;}
+.bt-result-title{font-family:var(--fd);font-size:2.5em;font-weight:900;color:var(--gold);text-shadow:0 0 30px rgba(242,183,5,.5),3px 3px 0 #3a2900;margin-bottom:20px;animation:bt-vs-pop .4s ease-out both;}
+.bt-result-row{display:flex;align-items:center;justify-content:center;gap:60px;width:100%;}
+.bt-result-label{font-family:var(--fd);font-size:3.5em;font-weight:900;letter-spacing:.08em;text-shadow:0 0 30px rgba(0,0,0,.8),3px 3px 0 rgba(0,0,0,.5);animation:bt-result-pop .4s ease-out both;}
+@keyframes bt-result-pop{from{opacity:0;transform:scale(2);}to{opacity:1;transform:scale(1);}}
+.bt-result-label.win{color:#f2b705;}
+.bt-result-label.lose{color:#ef4576;}
+.bt-result-label.draw{color:#9a8fc4;}
 .battle-vs{font-family:var(--fd);font-size:1.4em;color:var(--gold);text-shadow:0 0 10px rgba(242,183,5,.5);}
 .battle-rt{font-family:var(--fd);font-size:1em;color:var(--gold);min-height:1.2em;}
 /* ターン開始バナー */
@@ -252,7 +270,14 @@ button.ability-glow{animation:abglow 1.2s ease-in-out infinite alternate;border-
   </div>
 </div>
 <div id="battleOverlay">
-  <div class="battle-stage">
+  <!-- Phase 1: キャラ登場 + VS -->
+  <div id="btIntro" style="display:none;">
+    <img id="btImgA" class="bt-char bt-char-left" src="">
+    <div class="bt-vs-text" id="btVsText">VS</div>
+    <img id="btImgB" class="bt-char bt-char-right" src="">
+  </div>
+  <!-- Phase 2: ダイスロール -->
+  <div id="btDicePhase" class="battle-stage" style="display:none;">
     <div class="battle-row">
       <div class="battle-side"><div class="battle-nm" id="btAN"></div><div class="d3-wrap sm" id="btSA"></div><div class="battle-rn" id="btRA"></div><div class="battle-bonus" id="btBonusA"></div></div>
       <div class="battle-vs">VS</div>
@@ -260,6 +285,14 @@ button.ability-glow{animation:abglow 1.2s ease-in-out infinite alternate;border-
     </div>
     <div class="battle-rt" id="btRT"></div>
     <div class="battle-dmg" id="btDmg"></div>
+  </div>
+  <!-- Phase 3: RESULT + WIN/LOSE/DRAW -->
+  <div id="btResultBanner" style="display:none;">
+    <div class="bt-result-title" id="btResultTitle">RESULT</div>
+    <div class="bt-result-row">
+      <div class="bt-result-label bt-result-left" id="btResA"></div>
+      <div class="bt-result-label bt-result-right" id="btResB"></div>
+    </div>
   </div>
 </div>
 
@@ -272,6 +305,7 @@ socket.on('connect',()=>{myId=socket.id;});
 
 const ROLE_IMG={traveler:'traveler',professor:'professor',veteran:'veteran',farmer:'farmer',sheriff:'sheriff',assassin:'assassin',illusionist:'illusionist',gambler:'gambler'};
 const ROLE_ICON={traveler:'icon_traveler',professor:'icon_professor',veteran:'icon_veteran',farmer:'icon_farmer',sheriff:'icon_sheriff',assassin:'icon_assassin',illusionist:'icon_illusionist',gambler:'icon_gambler'};
+const ROLE_BATTLE={traveler:'battle_traveler',professor:'battle_professor',veteran:'battle_veteran',farmer:'battle_farmer',sheriff:'battle_sheriff',assassin:'battle_assassin',illusionist:'battle_illusionist',gambler:'battle_gambler'};
 
 /* ========== SOUND ENGINE ========== */
 let audioCtx=null;
@@ -486,7 +520,7 @@ function showPathBattleChoice(pos, opponents){
         tokenAnim=null;
       }
       // diceProcessingをリセットして次のダイスイベントを処理可能にする
-      setTimeout(()=>{diceProcessing=false;processNextDice();},3000);
+      setTimeout(()=>{diceProcessing=false;tryShowTurnStart();tryShowLevelUp();processNextDice();},3000);
       socket.emit('battleOnPath',{position:pos,opponentId:o.id});
     };
     bt.appendChild(b);
@@ -697,8 +731,21 @@ socket.on('roomUpdate',r=>{
   if(r.phase==='finished'){const w=r.players.find(p=>p.id===r.winnerId);$('winnerMsg').textContent=w?w.name+' の勝利です！':'';sfxVictory();}
 });
 
-/* ---- TURN BANNER ---- */
+/* ---- TURN BANNER (queued) ---- */
+let turnStartQueue=[];
+
 socket.on('turnStart',({playerId,playerName})=>{
+  turnStartQueue.push({playerId,playerName});
+  tryShowTurnStart();
+});
+
+function tryShowTurnStart(){
+  if(turnStartQueue.length===0) return;
+  if(battleAnimating||diceProcessing||tokenAnim||mapFrozen){
+    setTimeout(tryShowTurnStart,500);
+    return;
+  }
+  const{playerId,playerName}=turnStartQueue.shift();
   sfxTurn();
   const isMe=playerId===myId;
   const txt=isMe?'あなたのターン':playerName+' のターン';
@@ -706,25 +753,40 @@ socket.on('turnStart',({playerId,playerName})=>{
   $('turnBannerText').style.color=isMe?'var(--gold)':'var(--text)';
   $('turnBanner').style.display='flex';
   setTimeout(()=>{$('turnBanner').style.display='none';},1800);
-});
+}
+
+let levelUpQueue=[];
 
 socket.on('levelUp',({playerId,playerName,level})=>{
+  levelUpQueue.push({playerName,level});
+  tryShowLevelUp();
+});
+
+function tryShowLevelUp(){
+  if(levelUpQueue.length===0) return;
+  if(battleAnimating||diceProcessing||tokenAnim||mapFrozen){
+    setTimeout(tryShowLevelUp,500);
+    return;
+  }
+  const{playerName,level}=levelUpQueue.shift();
   $('lvUpText').textContent=playerName+' Lv.'+level+'に到達！';
   $('lvUpBanner').style.display='block';
-  setTimeout(()=>{$('lvUpBanner').style.display='none';},2500);
-});
+  setTimeout(()=>{$('lvUpBanner').style.display='none';tryShowLevelUp();},2500);
+}
 
 /* ---- DICE EVENTS (queue) ---- */
 let diceQueue=[];
 let diceProcessing=false;
+let battleAnimating=false;
 
 socket.on('diceRolled',(data)=>{
   diceQueue.push(data);
-  if(!diceProcessing) processNextDice();
+  if(!diceProcessing&&!battleAnimating) processNextDice();
 });
 
 function processNextDice(){
   if(diceQueue.length===0){diceProcessing=false;return;}
+  if(battleAnimating){setTimeout(processNextDice,500);return;}
   diceProcessing=true;
   const{playerId,baseRoll,bonus,total,startPos,finalPos:serverFinalPos,reroll,pathBattle,roleName,roleBonus,isGambler,gamblerAdjust,tripleDice}=diceQueue.shift();
   const pl=currentRoom?currentRoom.players.find(p=>p.id===playerId):null;
@@ -817,11 +879,11 @@ function processNextDice(){
           if(pathBattle){
             setTimeout(()=>{
               showBattleAnim(pathBattle,()=>{
-                setTimeout(()=>{diceProcessing=false;processNextDice();},2000);
+                setTimeout(()=>{diceProcessing=false;tryShowTurnStart();tryShowLevelUp();processNextDice();},2000);
               });
             },500);
           } else {
-            setTimeout(()=>{diceProcessing=false;processNextDice();},2000);
+            setTimeout(()=>{diceProcessing=false;tryShowTurnStart();tryShowLevelUp();processNextDice();},2000);
           }
         }
       );
@@ -859,39 +921,81 @@ function showEventBanner(text){
 }
 
 function showBattleAnim(data,onDone){
-  const{aId,aName,aDie,aRoll,aRoleName,aBonus,bId,bName,bDie,bRoll,bRoleName,bBonus,dmg,dmgBonus,dmgReduction,result}=data;
-  $('btAN').textContent=aName;$('btBN').textContent=bName;
-  $('btRA').textContent='';$('btRB').textContent='';$('btRT').textContent='';$('btDmg').textContent='';
-  $('btBonusA').textContent='';$('btBonusB').textContent='';
+  const{aId,aName,aDie,aRoll,aRoleName,aRoleId,aBonus,bId,bName,bDie,bRoll,bRoleName,bRoleId,bBonus,dmg,dmgBonus,dmgReduction,result}=data;
   $('battleOverlay').style.display='flex';
+  $('btIntro').style.display='flex';
+  $('btDicePhase').style.display='none';
+  $('btResultBanner').style.display='none';
+  battleAnimating=true;
   sfxBattle();
-  const dieAFace=aDie!=null?aDie:Math.min(6,Math.max(1,aRoll));
-  const dieBFace=bDie!=null?bDie:Math.min(6,Math.max(1,bRoll));
-  const cA=mkCube($('btSA')),cB=mkCube($('btSB'));
-  let done=0;
-  function fin(){
-    if(++done<2)return;
-    $('btRA').textContent=aRoll;$('btRB').textContent=bRoll;
-    if(aBonus) $('btBonusA').textContent=(aRoleName||'')+'ボーナス '+(aBonus>0?'+':'')+aBonus;
-    if(bBonus) $('btBonusB').textContent=(bRoleName||'')+'ボーナス '+(bBonus>0?'+':'')+bBonus;
-    $('btRT').textContent=aRoll>bRoll?aName+' の勝利！':bRoll>aRoll?bName+' の勝利！':'引き分け';
-    if(dmg!=null){
-      const loserName=result==='a'?bName:aName;
-      let dmgText=loserName+'は体力'+dmg+'を失った';
-      const extra=[];
-      if(dmgBonus) extra.push('ダメージ+'+dmgBonus);
-      if(dmgReduction) extra.push('軽減-'+dmgReduction);
-      if(extra.length) dmgText+=' ('+extra.join('、')+')';
-      $('btDmg').textContent=dmgText;
+
+  // Phase 1: キャラ画像登場 + VS
+  const imgA=ROLE_BATTLE[aRoleId]?'/img/'+ROLE_BATTLE[aRoleId]+'.png':'/img/'+(ROLE_IMG[aRoleId]||'traveler')+'.png';
+  const imgB=ROLE_BATTLE[bRoleId]?'/img/'+ROLE_BATTLE[bRoleId]+'.png':'/img/'+(ROLE_IMG[bRoleId]||'traveler')+'.png';
+  $('btImgA').src=imgA;$('btImgB').src=imgB;
+  // re-trigger animation
+  $('btImgA').className='bt-char bt-char-left';
+  $('btImgB').className='bt-char bt-char-right';
+  $('btVsText').style.display='';
+  $('btVsText').style.animation='none';void $('btVsText').offsetWidth;$('btVsText').style.animation='bt-vs-pop .4s .5s ease-out both';
+
+  // Phase 2: ダイスロール (1.8秒後に開始)
+  setTimeout(()=>{
+    $('btIntro').style.display='none';
+    $('btDicePhase').style.display='flex';
+    $('btAN').textContent=aName;$('btBN').textContent=bName;
+    $('btRA').textContent='';$('btRB').textContent='';$('btRT').textContent='';$('btDmg').textContent='';
+    $('btBonusA').textContent='';$('btBonusB').textContent='';
+    const dieAFace=aDie!=null?aDie:Math.min(6,Math.max(1,aRoll));
+    const dieBFace=bDie!=null?bDie:Math.min(6,Math.max(1,bRoll));
+    const cA=mkCube($('btSA')),cB=mkCube($('btSB'));
+    sfxBattle();
+    let done=0;
+    function fin(){
+      if(++done<2)return;
+      $('btRA').textContent=aRoll;$('btRB').textContent=bRoll;
+      if(aBonus) $('btBonusA').textContent=(aRoleName||'')+'ボーナス '+(aBonus>0?'+':'')+aBonus;
+      if(bBonus) $('btBonusB').textContent=(bRoleName||'')+'ボーナス '+(bBonus>0?'+':'')+bBonus;
+      $('btRT').textContent=aRoll>bRoll?aName+' の勝利！':bRoll>aRoll?bName+' の勝利！':'引き分け';
+      if(dmg!=null){
+        const loserName=result==='a'?bName:aName;
+        let dmgText=loserName+'は体力'+dmg+'を失った';
+        const extra=[];
+        if(dmgBonus) extra.push('ダメージ+'+dmgBonus);
+        if(dmgReduction) extra.push('軽減-'+dmgReduction);
+        if(extra.length) dmgText+=' ('+extra.join('、')+')';
+        $('btDmg').textContent=dmgText;
+      }
+
+      // Phase 3: WIN/LOSE/DRAW表示 (0.8秒後)
+      setTimeout(()=>{
+        $('btDicePhase').style.display='none';
+        $('btIntro').style.display='flex';
+        $('btVsText').style.display='none';
+        $('btResultBanner').style.display='flex';
+        $('btResultTitle').style.animation='none';void $('btResultTitle').offsetWidth;$('btResultTitle').style.animation='bt-vs-pop .4s ease-out both';
+        let resA='',resB='',clsA='',clsB='';
+        if(result==='a'){resA='WIN';clsA='win';resB='LOSE';clsB='lose';}
+        else if(result==='b'){resA='LOSE';clsA='lose';resB='WIN';clsB='win';}
+        else{resA='DRAW';clsA='draw';resB='DRAW';clsB='draw';}
+        $('btResA').textContent=resA;$('btResA').className='bt-result-label bt-result-left '+clsA;
+        $('btResB').textContent=resB;$('btResB').className='bt-result-label bt-result-right '+clsB;
+        $('btResA').style.animation='none';void $('btResA').offsetWidth;$('btResA').style.animation='bt-result-pop .4s ease-out both';
+        $('btResB').style.animation='none';void $('btResB').offsetWidth;$('btResB').style.animation='bt-result-pop .4s ease-out both';
+
+        setTimeout(()=>{$('battleOverlay').style.display='none';battleAnimating=false;if(onDone)onDone();},2000);
+      },1200);
     }
-    setTimeout(()=>{$('battleOverlay').style.display='none';if(onDone)onDone();},2600);
-  }
-  rollAnim(cA,dieAFace,1600+Math.random()*200,null,fin);
-  rollAnim(cB,dieBFace,1600+Math.random()*200,null,fin);
+    rollAnim(cA,dieAFace,1600+Math.random()*200,null,fin);
+    rollAnim(cB,dieBFace,1600+Math.random()*200,null,fin);
+  },1800);
 }
 
 socket.on('battleRolled',(data)=>{
-  showBattleAnim(data);
+  showBattleAnim(data,()=>{
+    tryShowTurnStart();tryShowLevelUp();
+    if(diceQueue.length>0 && !diceProcessing) processNextDice();
+  });
 });
 </script>
 </body>
