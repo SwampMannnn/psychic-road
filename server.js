@@ -275,30 +275,45 @@ function executeBattle(room, attacker, defender, silent) {
   const debuff = attacker.pendingBattleDebuff || 0;
   attacker.pendingBattleDebuff = 0;
 
-  const rollA = Math.max(0, Math.floor(Math.random() * 6) + 1 + aBonus);
-  const rollB = Math.max(0, Math.floor(Math.random() * 6) + 1 + dBonus - debuff);
+  const dieA = Math.floor(Math.random() * 6) + 1;
+  const dieB = Math.floor(Math.random() * 6) + 1;
+  const rollA = Math.max(0, dieA + aBonus);
+  const rollB = Math.max(0, dieB + dBonus - debuff);
 
   addLog(room, `戦闘: ${attacker.name}(${rollA}) vs ${defender.name}(${rollB})`);
-  const battleData = { aId: attacker.id, aName: attacker.name, aRoll: rollA, bId: defender.id, bName: defender.name, bRoll: rollB };
-  if (!silent) io.to(room.id).emit('battleRolled', battleData);
+  const battleData = {
+    aId: attacker.id, aName: attacker.name, aDie: dieA, aRoll: rollA, aRoleName: attacker.role.name, aBonus,
+    bId: defender.id, bName: defender.name, bDie: dieB, bRoll: rollB, bRoleName: defender.role.name, bBonus: dBonus - debuff,
+  };
 
   if (rollA > rollB) {
-    const dmg = Math.max(0, BATTLE_DAMAGE + (aP.battleDamageBonus || 0) - (dP.battleDamageReduction || 0));
+    const dmgBonus = (aP.battleDamageBonus || 0);
+    const dmgReduction = (dP.battleDamageReduction || 0);
+    const dmg = Math.max(0, BATTLE_DAMAGE + dmgBonus - dmgReduction);
     applyDelta(room, defender, { hp: -dmg });
     addLog(room, `${defender.name} は戦闘に敗れ、体力を${dmg}失った`);
+    battleData.result = 'a';
+    battleData.dmg = dmg; battleData.dmgBonus = dmgBonus; battleData.dmgReduction = dmgReduction;
     grantXP(room, attacker, XP_BATTLE_WIN, '戦闘勝利');
     grantXP(room, defender, XP_BATTLE_LOSE, '戦闘敗北');
   } else if (rollB > rollA) {
-    const dmg = Math.max(0, BATTLE_DAMAGE + (dP.battleDamageBonus || 0) - (aP.battleDamageReduction || 0));
+    const dmgBonus = (dP.battleDamageBonus || 0);
+    const dmgReduction = (aP.battleDamageReduction || 0);
+    const dmg = Math.max(0, BATTLE_DAMAGE + dmgBonus - dmgReduction);
     applyDelta(room, attacker, { hp: -dmg });
     addLog(room, `${attacker.name} は戦闘に敗れ、体力を${dmg}失った`);
+    battleData.result = 'b';
+    battleData.dmg = dmg; battleData.dmgBonus = dmgBonus; battleData.dmgReduction = dmgReduction;
     grantXP(room, attacker, XP_BATTLE_LOSE, '戦闘敗北');
     grantXP(room, defender, XP_BATTLE_WIN, '戦闘勝利');
   } else {
     addLog(room, '戦闘は引き分けに終わった');
+    battleData.result = 'draw';
     grantXP(room, attacker, XP_BATTLE_DRAW, '戦闘引き分け');
     grantXP(room, defender, XP_BATTLE_DRAW, '戦闘引き分け');
   }
+
+  if (!silent) io.to(room.id).emit('battleRolled', battleData);
   return battleData;
 }
 
@@ -420,16 +435,16 @@ function botTakeTurn(room, bot) {
   } else {
     // サイコロを振る
     let baseRoll, bonus, roll;
+    let gamblerAdjust = 0;
     if (bot.pendingFixedMove) {
       baseRoll = bot.pendingFixedMove; bonus = 0; roll = baseRoll; bot.pendingFixedMove = 0;
     } else {
       const bPassive = bot.role.passive || {};
       baseRoll = Math.floor(Math.random() * 6) + 1;
       if (bPassive.gamblerEffect) {
-        if (baseRoll % 2 === 1) baseRoll = Math.max(0, baseRoll - 3);
-        else baseRoll = baseRoll + 3;
+        gamblerAdjust = (baseRoll % 2 === 1) ? -3 : 3;
       }
-      bonus = (bot.pendingDiceBonus || 0) + (bPassive.moveDiceBonus || 0);
+      bonus = (bot.pendingDiceBonus || 0) + (bPassive.moveDiceBonus || 0) + gamblerAdjust;
       roll = Math.max(0, baseRoll + bonus);
     }
     bot.pendingDiceBonus = 0;
@@ -477,7 +492,7 @@ function botTakeTurn(room, bot) {
       }
       // diceRolledを先に送信し、cellEventResultは後から送信
       addLog(room, `${bot.name} はサイコロを振り、${roll}マス進む`);
-      io.to(room.id).emit('diceRolled', { playerId: bot.id, baseRoll, bonus, total: roll, startPos, finalPos: Math.min(startPos + roll, BOARD_SIZE) });
+      io.to(room.id).emit('diceRolled', { playerId: bot.id, baseRoll, bonus, total: roll, startPos, finalPos: Math.min(startPos + roll, BOARD_SIZE), roleName: bot.role.name, roleBonus: (bot.role.passive||{}).moveDiceBonus||0, isGambler: !!(bot.role.passive||{}).gamblerEffect, gamblerAdjust });
       broadcastRoom(room);
       if (cellEventLabel) {
         io.to(room.id).emit('cellEventResult', { playerId: bot.id, label: cellEventLabel, moveDelta: cellMoveDelta, finalPos: bot.position });
@@ -486,7 +501,7 @@ function botTakeTurn(room, bot) {
       addLog(room, `${bot.name} はサイコロを振り、${roll}マス進む`);
       grantXP(room, bot, (battlePos - startPos) * XP_PER_TILE, 'マス移動');
       const pb = room._botPathBattle || null; delete room._botPathBattle;
-      io.to(room.id).emit('diceRolled', { playerId: bot.id, baseRoll, bonus, total: roll, startPos, finalPos: battlePos, pathBattle: pb });
+      io.to(room.id).emit('diceRolled', { playerId: bot.id, baseRoll, bonus, total: roll, startPos, finalPos: battlePos, pathBattle: pb, roleName: bot.role.name, roleBonus: (bot.role.passive||{}).moveDiceBonus||0, isGambler: !!(bot.role.passive||{}).gamblerEffect, gamblerAdjust });
       broadcastRoom(room);
     }
 
@@ -724,7 +739,7 @@ io.on('connection', (socket) => {
     if (player.actionTaken) return socket.emit('errorMsg', { message: 'このターンはすでに行動済みです' });
 
     const passive = player.role.passive || {};
-    let baseRoll, bonus, roll;
+    let baseRoll, bonus, roll, gamblerAdjust = 0;
     if (player.pendingFixedMove) {
       baseRoll = player.pendingFixedMove; bonus = 0; roll = baseRoll; player.pendingFixedMove = 0;
     } else {
@@ -738,12 +753,11 @@ io.on('connection', (socket) => {
       } else {
         baseRoll = Math.floor(Math.random() * 6) + 1;
       }
-      // ギャンブラー効果
+      // ギャンブラー効果（出目そのものは変えず、別ボーナスとして加算）
       if (passive.gamblerEffect) {
-        if (baseRoll % 2 === 1) { baseRoll = Math.max(0, baseRoll - 3); }
-        else { baseRoll = baseRoll + 3; }
+        gamblerAdjust = (baseRoll % 2 === 1) ? -3 : 3;
       }
-      bonus = (player.pendingDiceBonus || 0) + (passive.moveDiceBonus || 0);
+      bonus = (player.pendingDiceBonus || 0) + (passive.moveDiceBonus || 0) + gamblerAdjust;
       roll = Math.max(0, baseRoll + bonus);
     }
     player.pendingDiceBonus = 0;
@@ -763,6 +777,7 @@ io.on('connection', (socket) => {
       roleName: player.role.name,
       roleBonus: passive.moveDiceBonus || 0,
       isGambler: !!passive.gamblerEffect,
+      gamblerAdjust,
       tripleDice: player._tripleDice || null,
     });
     player._tripleDice = null;
@@ -793,17 +808,18 @@ io.on('connection', (socket) => {
 
     player.hasRerolledThisTurn = true;
     let baseRoll = Math.floor(Math.random() * 6) + 1;
+    let gamblerAdjust = 0;
     if (passive.gamblerEffect) {
-      if (baseRoll % 2 === 1) baseRoll = Math.max(0, baseRoll - 3);
-      else baseRoll = baseRoll + 3;
+      gamblerAdjust = (baseRoll % 2 === 1) ? -3 : 3;
     }
     const moveBonus = passive.moveDiceBonus || 0;
-    const roll = Math.max(0, baseRoll + moveBonus);
+    const totalBonus = moveBonus + gamblerAdjust;
+    const roll = Math.max(0, baseRoll + totalBonus);
     player.pendingMoveTotal = roll;
     player.moveStartPos = player.position;
 
     addLog(room, `${player.name} はサイコロを振り直した！ ${roll}マス進む`);
-    io.to(room.id).emit('diceRolled', { playerId: player.id, baseRoll, bonus: moveBonus, total: roll, startPos: player.position, reroll: true });
+    io.to(room.id).emit('diceRolled', { playerId: player.id, baseRoll, bonus: totalBonus, total: roll, startPos: player.position, reroll: true, roleName: player.role.name, roleBonus: moveBonus, isGambler: !!passive.gamblerEffect, gamblerAdjust });
     broadcastRoom(room);
   });
 
@@ -871,13 +887,6 @@ io.on('connection', (socket) => {
     player.pendingMoveTotal = 0;
     player.battleDoneThisTurn = true;
     player.lastPathBattle = { opponentId, position };
-
-    const aBonus = (player.role.passive || {}).battleDiceBonus || 0;
-    const bBonus = (opponent.role.passive || {}).battleDiceBonus || 0;
-    const debuff = player.pendingBattleDebuff || 0;
-    player.pendingBattleDebuff = 0;
-    const rollA = Math.max(0, Math.floor(Math.random() * 6) + 1 + aBonus);
-    const rollB = Math.max(0, Math.floor(Math.random() * 6) + 1 + bBonus - debuff);
 
     addLog(room, `${player.name} が移動中に ${opponent.name} に戦闘を仕掛けた`);
     executeBattle(room, player, opponent);

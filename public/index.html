@@ -134,6 +134,8 @@ button.ability-glow{animation:abglow 1.2s ease-in-out infinite alternate;border-
 .battle-side{display:flex;flex-direction:column;align-items:center;gap:4px;}
 .battle-nm{font-size:.85em;color:var(--text);font-weight:500;}
 .battle-rn{font-family:var(--fd);font-size:1.4em;color:var(--gold);min-height:1.4em;}
+.battle-bonus{font-size:.75em;color:#22d3ee;min-height:1.1em;}
+.battle-dmg{font-size:.85em;color:var(--dim);margin-top:4px;min-height:1.1em;}
 .battle-vs{font-family:var(--fd);font-size:1.4em;color:var(--gold);text-shadow:0 0 10px rgba(242,183,5,.5);}
 .battle-rt{font-family:var(--fd);font-size:1em;color:var(--gold);min-height:1.2em;}
 /* ターン開始バナー */
@@ -252,11 +254,12 @@ button.ability-glow{animation:abglow 1.2s ease-in-out infinite alternate;border-
 <div id="battleOverlay">
   <div class="battle-stage">
     <div class="battle-row">
-      <div class="battle-side"><div class="battle-nm" id="btAN"></div><div class="d3-wrap sm" id="btSA"></div><div class="battle-rn" id="btRA"></div></div>
+      <div class="battle-side"><div class="battle-nm" id="btAN"></div><div class="d3-wrap sm" id="btSA"></div><div class="battle-rn" id="btRA"></div><div class="battle-bonus" id="btBonusA"></div></div>
       <div class="battle-vs">VS</div>
-      <div class="battle-side"><div class="battle-nm" id="btBN"></div><div class="d3-wrap sm" id="btSB"></div><div class="battle-rn" id="btRB"></div></div>
+      <div class="battle-side"><div class="battle-nm" id="btBN"></div><div class="d3-wrap sm" id="btSB"></div><div class="battle-rn" id="btRB"></div><div class="battle-bonus" id="btBonusB"></div></div>
     </div>
     <div class="battle-rt" id="btRT"></div>
+    <div class="battle-dmg" id="btDmg"></div>
   </div>
 </div>
 
@@ -723,7 +726,7 @@ socket.on('diceRolled',(data)=>{
 function processNextDice(){
   if(diceQueue.length===0){diceProcessing=false;return;}
   diceProcessing=true;
-  const{playerId,baseRoll,bonus,total,startPos,finalPos:serverFinalPos,reroll,pathBattle,roleName,roleBonus,isGambler,tripleDice}=diceQueue.shift();
+  const{playerId,baseRoll,bonus,total,startPos,finalPos:serverFinalPos,reroll,pathBattle,roleName,roleBonus,isGambler,gamblerAdjust,tripleDice}=diceQueue.shift();
   const pl=currentRoom?currentRoom.players.find(p=>p.id===playerId):null;
   const nm=pl?pl.name:'?';
   frozenPositions={};
@@ -760,9 +763,10 @@ function processNextDice(){
     rollAnim(cube,Math.min(6,Math.max(1,baseRoll)),1800,$('diceShadow'),()=>{
       $('diceShadow').style.display='none';
       let infoHtml=nm+': 出目 '+baseRoll;
-      if(isGambler) infoHtml+=' <span style="color:#ff6b6b;font-size:.8em;">(ギャンブラー効果)</span>';
+      if(isGambler && gamblerAdjust) infoHtml+=' <span style="color:#ff6b6b;font-size:.8em;">(ギャンブラー効果 '+(gamblerAdjust>0?'+':'')+gamblerAdjust+')</span>';
       if(roleBonus) infoHtml+=' <span style="color:#22d3ee;font-size:.8em;">'+roleName+'ボーナス +'+roleBonus+'</span>';
-      if(bonus && bonus!==(roleBonus||0)) infoHtml+=' <span class="bonus">能力ボーナス +'+(bonus-(roleBonus||0))+'</span>';
+      const abilityBonus=bonus-(roleBonus||0)-(gamblerAdjust||0);
+      if(abilityBonus) infoHtml+=' <span class="bonus">能力ボーナス +'+abilityBonus+'</span>';
       infoHtml+=' → <b>'+total+'マス</b>';
       $('diceInfo').innerHTML=infoHtml;
       afterDiceDisplay();
@@ -854,18 +858,36 @@ function showEventBanner(text){
   setTimeout(()=>{$('eventBanner').style.display='none';},2200);
 }
 
-function showBattleAnim({aId,aName,aRoll,bId,bName,bRoll},onDone){
+function showBattleAnim(data,onDone){
+  const{aId,aName,aDie,aRoll,aRoleName,aBonus,bId,bName,bDie,bRoll,bRoleName,bBonus,dmg,dmgBonus,dmgReduction,result}=data;
   $('btAN').textContent=aName;$('btBN').textContent=bName;
-  $('btRA').textContent='';$('btRB').textContent='';$('btRT').textContent='';
+  $('btRA').textContent='';$('btRB').textContent='';$('btRT').textContent='';$('btDmg').textContent='';
+  $('btBonusA').textContent='';$('btBonusB').textContent='';
   $('battleOverlay').style.display='flex';
   sfxBattle();
+  const dieAFace=aDie!=null?aDie:Math.min(6,Math.max(1,aRoll));
+  const dieBFace=bDie!=null?bDie:Math.min(6,Math.max(1,bRoll));
   const cA=mkCube($('btSA')),cB=mkCube($('btSB'));
   let done=0;
-  function fin(){if(++done<2)return;$('btRA').textContent=aRoll;$('btRB').textContent=bRoll;
+  function fin(){
+    if(++done<2)return;
+    $('btRA').textContent=aRoll;$('btRB').textContent=bRoll;
+    if(aBonus) $('btBonusA').textContent=(aRoleName||'')+'ボーナス '+(aBonus>0?'+':'')+aBonus;
+    if(bBonus) $('btBonusB').textContent=(bRoleName||'')+'ボーナス '+(bBonus>0?'+':'')+bBonus;
     $('btRT').textContent=aRoll>bRoll?aName+' の勝利！':bRoll>aRoll?bName+' の勝利！':'引き分け';
-    setTimeout(()=>{$('battleOverlay').style.display='none';if(onDone)onDone();},2400);}
-  rollAnim(cA,Math.min(6,Math.max(1,aRoll)),1600+Math.random()*200,null,fin);
-  rollAnim(cB,Math.min(6,Math.max(1,bRoll)),1600+Math.random()*200,null,fin);
+    if(dmg!=null){
+      const loserName=result==='a'?bName:aName;
+      let dmgText=loserName+'は体力'+dmg+'を失った';
+      const extra=[];
+      if(dmgBonus) extra.push('ダメージ+'+dmgBonus);
+      if(dmgReduction) extra.push('軽減-'+dmgReduction);
+      if(extra.length) dmgText+=' ('+extra.join('、')+')';
+      $('btDmg').textContent=dmgText;
+    }
+    setTimeout(()=>{$('battleOverlay').style.display='none';if(onDone)onDone();},2600);
+  }
+  rollAnim(cA,dieAFace,1600+Math.random()*200,null,fin);
+  rollAnim(cB,dieBFace,1600+Math.random()*200,null,fin);
 }
 
 socket.on('battleRolled',(data)=>{
