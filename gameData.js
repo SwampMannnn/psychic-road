@@ -196,6 +196,35 @@ const SUPER_SETS = [
       },
     ],
   },
+  {
+    id: 'prayer', name: '祈祷の超能力', image: 'set_prayer',
+    lines: [
+      {
+        id: 'foresight',
+        stages: [
+          { level: 0, id: 'foresight', name: '予知の祈祷', cost: 1, timing: 'beforeMove', type: 'self',
+            description: '8ターン（2ラウンド）以内に災害が起こるか予知できる（自分にのみ結果が表示される）',
+            effect: { type: 'disasterForesight', withinTurns: 8 } },
+        ],
+      },
+      {
+        id: 'blessing',
+        stages: [
+          { level: 0, id: 'blessing', name: '恵みの祈祷', cost: 2, timing: 'beforeMove', type: 'self',
+            description: 'HPを4回復する',
+            effect: { type: 'heal', value: 4 } },
+        ],
+      },
+      {
+        id: 'disasterprayer',
+        stages: [
+          { level: 0, id: 'disasterprayer', name: '災害の祈祷', cost: 6, timing: 'beforeMove', type: 'self',
+            description: '災害を発動させる（マップで1度のみ）。自身はその効果を一切受けない',
+            effect: { type: 'triggerDisasterPrayer' } },
+        ],
+      },
+    ],
+  },
 ];
 
 // 経験値・レベルシステム
@@ -219,11 +248,21 @@ const CELL_EVENTS = [
   { id: 'move_back', label: '道に迷い、2マス戻った', weight: 2, apply: () => ({ move: -2 }) },
 ];
 
-const EVENT_CARDS = [
-  { id: 'card_energy_surge', label: '空間にサイコエナジーが満ちる。全員のサイコエナジーが2回復した', apply: () => ({ energy: 2 }) },
-  { id: 'card_storm', label: '嵐が吹き荒れる。全員の体力が1減少した', apply: () => ({ hp: -1 }) },
-  { id: 'card_calm', label: '静寂が訪れる。全員の体力が1回復した', apply: () => ({ hp: 1 }) },
-  { id: 'card_drain', label: '謎の力が精神を消耗させる。全員のサイコエナジーが1減少した', apply: () => ({ energy: -1 }) },
+// 災害: マップごとに1度、ランダムなターンの終わりに発生する共通システム。
+// 実際の効果ロジックはserver.js側のtriggerDisasterで、idに応じて実装される。
+const DISASTERS = [
+  { id: 'arawa', name: '荒波', label: '荒波が発生した', image: 'disaster_arawa',
+    description: '全員に3ダメージ。全員サイコロを一度振り、次の1周のサイコロはその目の分だけ-される。' },
+  { id: 'jiware', name: '地割れ', label: '地割れが発生した', image: 'disaster_jiware',
+    description: '全員5マス後退する。' },
+  { id: 'oohiji', name: '大火事', label: '大火事が発生した', image: 'disaster_oohiji',
+    description: '全員に5ダメージ。' },
+  { id: 'taifu', name: '台風', label: '台風が発生した', image: 'disaster_taifu',
+    description: '全員サイコロを一度振り、その目の分だけ後退する。全員サイコエナジー-3。' },
+  { id: 'gouu', name: '豪雨', label: '豪雨が発生した', image: 'disaster_gouu',
+    description: '全員サイコエナジー-5。' },
+  { id: 'ameame', name: '飴の雨', label: '飴の雨が降ってきた', image: 'disaster_ameame',
+    description: '全員HPとサイコエナジーを3回復。次の移動のサイコロが-3される。' },
 ];
 
 function pickWeightedCellEvent() {
@@ -232,7 +271,7 @@ function pickWeightedCellEvent() {
   for (const e of CELL_EVENTS) { if (r < e.weight) return e; r -= e.weight; }
   return CELL_EVENTS[0];
 }
-function pickRandomEventCard() { return EVENT_CARDS[Math.floor(Math.random() * EVENT_CARDS.length)]; }
+function pickRandomDisaster() { return DISASTERS.length ? DISASTERS[Math.floor(Math.random() * DISASTERS.length)] : null; }
 
 // 系統(line)とプレイヤーレベルから、現在有効なstageを返す。未解放ならnull。
 function getLineStage(line, level) {
@@ -247,6 +286,6 @@ module.exports = {
   ROLES, SUPER_SETS,
   XP_PER_TILE, XP_ABILITY_USE, XP_BATTLE_WIN, XP_BATTLE_LOSE, XP_BATTLE_DRAW,
   MAX_LEVEL, LEVEL_XP,
-  CELL_EVENTS, EVENT_CARDS,
-  pickWeightedCellEvent, pickRandomEventCard, getLineStage,
+  CELL_EVENTS, DISASTERS,
+  pickWeightedCellEvent, pickRandomDisaster, getLineStage,
 };

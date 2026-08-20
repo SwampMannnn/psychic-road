@@ -8,7 +8,7 @@ const {
   XP_PER_TILE, XP_ABILITY_USE, XP_BATTLE_WIN, XP_BATTLE_LOSE, XP_BATTLE_DRAW,
   MAX_LEVEL, LEVEL_XP,
   pickWeightedCellEvent,
-  pickRandomEventCard,
+  pickRandomDisaster,
   getLineStage,
 } = require('./gameData');
 
@@ -21,7 +21,8 @@ app.use(express.static(path.join(__dirname, 'public')));
 const MAX_PLAYERS = 4;
 const MIN_PLAYERS = 2;
 const BOARD_SIZE = 34;
-const EVENT_CARD_INTERVAL = 4; // 4ラウンド毎
+const DISASTER_MIN_ROUNDS = 2;  // 最初のこの数のラウンドは自然発生の災害が起きない
+const DISASTER_EXTRA_TURNS = 20; // 発生可能な最短ターンから、さらに何ターン分の幅を持たせるか
 const BASE_MAX_HP = 10;
 const BASE_MAX_ENERGY = 6;
 const BASE_HP_REGEN = 1;
@@ -317,6 +318,7 @@ function initPlayerForGame(p) {
   p.pendingBattleDamageReflect = false;
   p.pendingIncomingMoveEffect = null;
   p.copiedAbilities = [];
+  p.disasterPrayerUsed = false;
 }
 
 function applyDelta(room, p, delta) {
@@ -895,19 +897,20 @@ function distributeSuperSet(room) {
 
 function advanceTurn(room) {
   if (room.phase !== 'playing') return;
+
+  // 災害チェック: 直前に終わったターンをカウントし、抽選されたターン数に達したら発生させる
+  room.globalTurnCount = (room.globalTurnCount || 0) + 1;
+  if (!room.disasterFired && room.disasterTriggerTurn && room.globalTurnCount >= room.disasterTriggerTurn) {
+    room.disasterFired = true;
+    resolveDisaster(room, null);
+  }
+
   let guard = 0;
   do {
     room.turnIndex = (room.turnIndex + 1) % room.turnOrder.length;
     if (room.turnIndex === 0) {
       room.roundNumber += 1;
       cleanupBannedAbilities(room);
-      if (room.roundNumber % EVENT_CARD_INTERVAL === 0) {
-        const card = pickRandomEventCard();
-        addLog(room, `イベントカード発生: ${card.label}`);
-        room.players.forEach((pl) => {
-          if (!pl.finished) applyDelta(room, pl, card.apply());
-        });
-      }
     }
     const currentId = room.turnOrder[room.turnIndex];
     const current = getPlayer(room, currentId);
@@ -930,6 +933,109 @@ function advanceTurn(room) {
 
   // Botのターンなら自動行動を開始
   scheduleBotTurn(room);
+}
+
+// 災害の効果適用ヘルパー: 1人分のHP/エナジー/移動変化を、通知含めて安全に適用する
+function applyDisasterDelta(room, pl, { hp, energy, move } = {}) {
+  if (hp) {
+    const { hpApplied } = applyDelta(room, pl, { hp });
+    if (hpApplied !== 0) emitHpChange(room, pl, hpApplied);
+  }
+  if (energy) {
+    const before = pl.energy;
+    applyDelta(room, pl, { energy });
+    const energyApplied = pl.energy - before;
+    if (energyApplied !== 0) emitEnergyChange(room, pl, energyApplied);
+  }
+  if (move) {
+    const before = pl.position;
+    pl.position = clamp(pl.position + move, 0, BOARD_SIZE);
+    checkGoal(room, pl);
+    if (pl.position !== before) {
+      io.to(room.id).emit('disasterMoveResult', { playerId: pl.id, playerName: pl.name, fromPos: before, toPos: pl.position });
+    }
+  }
+}
+
+// 災害: マップごとに1度、抽選されたターンの終わりに発生する（自然発生）。
+// 祈祷による発動時はexcludePlayerIdに発動者のidを渡し、その本人だけ効果を除外する。
+// プレイヤー人数に応じて「最初のDISASTER_MIN_ROUNDSラウンドを除外した」トリガーターンを抽選する
+function computeDisasterTriggerTurn(room) {
+  const playerCount = room.turnOrder.length || 1;
+  const minTurn = playerCount * DISASTER_MIN_ROUNDS + 1; // これより後のターンでのみ発生しうる
+  const maxTurn = minTurn + DISASTER_EXTRA_TURNS;
+  return minTurn + Math.floor(Math.random() * (maxTurn - minTurn + 1));
+}
+
+function resolveDisaster(room, excludePlayerId) {
+  const disaster = pickRandomDisaster();
+  if (!disaster) return;
+  console.log('[resolveDisaster] picked disaster:', disaster.id, disaster.name);
+  addLog(room, `災害発生: ${disaster.label}`);
+  // 先に発生バナーを送り、その後に各プレイヤーへの影響を通知する（表示順序を保証）
+  io.to(room.id).emit('disasterTriggered', { name: disaster.name, label: disaster.label, image: disaster.image });
+
+  const activePlayers = room.players.filter(pl => !pl.finished && pl.id !== excludePlayerId);
+
+  switch (disaster.id) {
+    case 'arawa': {
+      // 全員に3ダメージ。全員サイコロを一度振り、次の1周の移動がその目の分だけ減少する
+      activePlayers.forEach(pl => {
+        const roll = Math.floor(Math.random() * 6) + 1;
+        // 先にダイス演出イベントを送信し、結果（HP減少）はその後に届くようにする
+        console.log('[resolveDisaster:arawa] emitting disasterPlayerRoll for', pl.name, 'roll:', roll);
+        io.to(room.id).emit('disasterPlayerRoll', {
+          playerId: pl.id, playerName: pl.name, roll,
+          disasterId: disaster.id, disasterName: disaster.name,
+          introText: `${pl.name} は荒波の中でサイコロを振る`,
+          resultText: `次の移動が${roll}マス減少する`,
+        });
+        pl.pendingIncomingMoveEffect = { mode: 'reduce', value: roll };
+        addLog(room, `${pl.name} は荒波の中でサイコロを振り、${roll}の目が出た（次の移動が${roll}減少する）`);
+        applyDisasterDelta(room, pl, { hp: -3 });
+      });
+      break;
+    }
+    case 'jiware': {
+      // 全員5マス後退
+      activePlayers.forEach(pl => applyDisasterDelta(room, pl, { move: -5 }));
+      break;
+    }
+    case 'oohiji': {
+      // 全員に5ダメージ
+      activePlayers.forEach(pl => applyDisasterDelta(room, pl, { hp: -5 }));
+      break;
+    }
+    case 'taifu': {
+      // 全員サイコロを一度振り、その目の分だけ後退。全員サイコエナジー-3
+      activePlayers.forEach(pl => {
+        const roll = Math.floor(Math.random() * 6) + 1;
+        console.log('[resolveDisaster:taifu] emitting disasterPlayerRoll for', pl.name, 'roll:', roll);
+        io.to(room.id).emit('disasterPlayerRoll', {
+          playerId: pl.id, playerName: pl.name, roll,
+          disasterId: disaster.id, disasterName: disaster.name,
+          introText: `${pl.name} は台風の中でサイコロを振る`,
+          resultText: `${roll}マス後退する`,
+        });
+        addLog(room, `${pl.name} は台風の中でサイコロを振り、${roll}の目が出た（${roll}マス後退する）`);
+        applyDisasterDelta(room, pl, { move: -roll, energy: -3 });
+      });
+      break;
+    }
+    case 'gouu': {
+      // 全員サイコエナジー-5
+      activePlayers.forEach(pl => applyDisasterDelta(room, pl, { energy: -5 }));
+      break;
+    }
+    case 'ameame': {
+      // 全員HP+3・サイコエナジー+3。次の移動のサイコロが-3される
+      activePlayers.forEach(pl => {
+        applyDisasterDelta(room, pl, { hp: 3, energy: 3 });
+        pl.pendingIncomingMoveEffect = { mode: 'reduce', value: 3 };
+      });
+      break;
+    }
+  }
 }
 
 /* ========== Bot AI ========== */
@@ -1090,6 +1196,8 @@ function botTryUseAbility(room, bot) {
       case 'barrier': case 'barrierHeal': shouldUse = !bot.hasBarrier && Math.random() < 0.4; break;
       case 'trap': shouldUse = Math.random() < 0.4; break;
       case 'moveDebuffAll': shouldUse = Math.random() < 0.6; break;
+      case 'disasterForesight': shouldUse = Math.random() < 0.3; break;
+      case 'triggerDisasterPrayer': shouldUse = !bot.disasterPrayerUsed && Math.random() < 0.15; break;
       case 'copyAbility': {
         const history = ((room.abilityHistoryByPosition && room.abilityHistoryByPosition[bot.position]) || []).filter(h => h.ownerId !== bot.id);
         shouldUse = history.length > 0 && Math.random() < 0.5;
@@ -1148,6 +1256,16 @@ function botTryUseAbility(room, bot) {
           const others = room.players.filter(t => t.id !== bot.id && !t.finished);
           others.forEach(t => { t.pendingIncomingMoveEffect = { mode: stage.effect.mode, value: stage.effect.value }; });
           addLog(room, `${bot.name} は時間を操り、他の全プレイヤーの次の移動に干渉した`);
+          break;
+        }
+        case 'disasterForesight': {
+          addLog(room, `${bot.name} は予知の祈祷を行った`, { secret: true, ownerId: bot.id, abilityName: stage.name, hiddenMsg: `${bot.name} は超能力を発動した` });
+          break;
+        }
+        case 'triggerDisasterPrayer': {
+          bot.disasterPrayerUsed = true;
+          addLog(room, `${bot.name} が災害の祈祷を捧げた…`);
+          resolveDisaster(room, bot.id);
           break;
         }
         case 'energyDrain': {
@@ -1213,6 +1331,9 @@ function botAutoSelectRoles(room) {
             room.phase = 'playing';
             room.turnIndex = 0;
             room.roundNumber = 1;
+            room.globalTurnCount = 0;
+            room.disasterFired = false;
+            room.disasterTriggerTurn = computeDisasterTriggerTurn(room);
             addLog(room, 'ゲームプレイを開始します');
             broadcastRoom(room);
             const first = getPlayer(room, room.turnOrder[room.turnIndex]);
@@ -1347,6 +1468,9 @@ io.on('connection', (socket) => {
       room.phase = 'playing';
       room.turnIndex = 0;
       room.roundNumber = 1;
+      room.globalTurnCount = 0;
+      room.disasterFired = false;
+      room.disasterTriggerTurn = computeDisasterTriggerTurn(room);
       addLog(room, 'ゲームプレイを開始します');
       broadcastRoom(room);
       const first = getPlayer(room, room.turnOrder[room.turnIndex]);
@@ -1644,6 +1768,9 @@ io.on('connection', (socket) => {
       historyEntry = history.find(h => h.id === choiceId && h.ownerId !== player.id);
       if (!historyEntry) return socket.emit('errorMsg', { message: 'コピーする超能力を選択してください' });
     }
+    if (stage.effect.type === 'triggerDisasterPrayer' && player.disasterPrayerUsed) {
+      return socket.emit('errorMsg', { message: '災害の祈祷はこのマップで既に使用済みです' });
+    }
 
     player.energy -= stage.cost;
     if (!player.usedTimings) player.usedTimings = [];
@@ -1651,6 +1778,10 @@ io.on('connection', (socket) => {
     addLog(room, `${player.name} は「${stage.name}」を発動した`, { secret: true, ownerId: socket.id, abilityName: stage.name, hiddenMsg: `${player.name} は超能力を発動した` });
     // 模倣のコピー元として、このマスでの使用を記録（コピー能力自体はコピー元にしない）
     if (!isCopy) recordAbilityUse(room, player, powerId, stage);
+
+    // 発動演出イベントは、効果によるHP変動等の結果通知より必ず先に送信する
+    const set2 = player.superSetId ? getSetById(player.superSetId) : null;
+    io.to(room.id).emit('abilityActivated', { playerId: player.id, playerName: player.name, powerName: stage.name, setImage: set2 ? set2.image : null });
 
     switch (stage.effect.type) {
       case 'diceBonus':
@@ -1706,6 +1837,34 @@ io.on('connection', (socket) => {
         addLog(room, `${player.name} は時間を操り、他の全プレイヤーの次の移動に干渉した`);
         break;
       }
+      case 'disasterForesight': {
+        let message, positive;
+        if (room.disasterFired) {
+          message = '災害は既にこのマップで発生済みのようだ';
+          positive = false;
+        } else if (room.disasterTriggerTurn != null) {
+          const remaining = room.disasterTriggerTurn - room.globalTurnCount;
+          if (remaining >= 0 && remaining <= (stage.effect.withinTurns || 8)) {
+            message = `不吉な予感がする…${stage.effect.withinTurns || 8}ターン以内に災害が起こりそうだ`;
+            positive = true;
+          } else {
+            message = '当分の間、災害の気配は感じられない';
+            positive = false;
+          }
+        } else {
+          message = '当分の間、災害の気配は感じられない';
+          positive = false;
+        }
+        socket.emit('disasterForesightResult', { message, positive });
+        addLog(room, `${player.name} は予知の祈祷を行った`, { secret: true, ownerId: player.id, abilityName: stage.name, hiddenMsg: `${player.name} は超能力を発動した` });
+        break;
+      }
+      case 'triggerDisasterPrayer': {
+        player.disasterPrayerUsed = true;
+        addLog(room, `${player.name} が災害の祈祷を捧げた…`);
+        resolveDisaster(room, player.id);
+        break;
+      }
       case 'energyDrain': {
         const before = target.energy;
         if (stage.effect.setZero) {
@@ -1741,10 +1900,6 @@ io.on('connection', (socket) => {
     // 経験値付与（コピーした能力の使用は0.7倍）
     const abilityXp = isCopy ? Math.ceil(XP_ABILITY_USE * 0.7) : XP_ABILITY_USE;
     grantXP(room, player, abilityXp, isCopy ? 'コピー能力発動' : '超能力発動');
-
-    // 発動演出イベント（cellEventResult等より前に届くよう先に送信）
-    const set2 = player.superSetId ? getSetById(player.superSetId) : null;
-    io.to(room.id).emit('abilityActivated', { playerId: player.id, playerName: player.name, powerName: stage.name, setImage: set2 ? set2.image : null });
 
     broadcastRoom(room);
   });

@@ -111,6 +111,11 @@ button.ability-glow{animation:abglow 1.2s ease-in-out infinite alternate;border-
 #tooltip{display:none;position:fixed;background:#1a1240;border:1px solid var(--panel-line);border-radius:6px;padding:8px 10px;font-size:.78em;color:var(--text);min-width:180px;max-width:280px;z-index:200;box-shadow:0 6px 20px rgba(0,0,0,.7);pointer-events:none;line-height:1.5;}
 /* ===== 3D DICE ===== */
 #diceOverlay,#battleOverlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:100;background:rgba(6,3,16,.55);}
+/* 災害のサイコロ演出 */
+#disasterDiceOverlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:122;background:radial-gradient(circle,rgba(120,10,10,.4),rgba(6,3,16,.88));}
+#disasterDiceOverlay .ddo-inner{text-align:center;}
+#disasterDiceOverlay .ddo-intro{font-family:var(--fd);font-size:1.2em;font-weight:700;color:#ff8a8a;text-shadow:0 0 16px rgba(255,60,60,.5);margin-bottom:18px;min-height:1.4em;}
+#disasterDiceOverlay .ddo-result{font-family:var(--fd);font-size:1.15em;color:var(--text);text-shadow:0 0 10px rgba(0,0,0,.8);margin-top:18px;min-height:1.4em;}
 .dice-stage{display:flex;flex-direction:column;align-items:center;gap:6px;}
 .d3-wrap{width:120px;height:120px;perspective:400px;}
 .d3-wrap.sm{width:80px;height:80px;perspective:300px;}
@@ -173,6 +178,21 @@ button.ability-glow{animation:abglow 1.2s ease-in-out infinite alternate;border-
 /* マスイベントバナー */
 #eventBanner{position:fixed;bottom:60px;left:50%;transform:translateX(-50%);display:none;z-index:90;pointer-events:none;}
 #eventBanner .ev-inner{font-family:var(--fd);font-size:1.15em;font-weight:500;color:var(--text);background:linear-gradient(180deg,rgba(18,10,34,.94),rgba(18,10,34,.88));border:1px solid var(--panel-line);border-radius:10px;padding:14px 28px;text-align:center;box-shadow:0 6px 24px rgba(0,0,0,.6);animation:ev-pop .4s ease-out;}
+/* 災害バナー（ゲーム中1度だけの大きな演出） */
+#disasterBanner{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:120;background:radial-gradient(circle,rgba(120,10,10,.55),rgba(6,3,16,.92));}
+#disasterBanner .db-inner{text-align:center;animation:db-pop .5s ease-out both;}
+#disasterBanner .db-title{font-family:var(--fd);font-size:2.4em;font-weight:900;color:#ff5252;letter-spacing:.15em;text-shadow:0 0 30px rgba(255,60,60,.7),3px 3px 0 #3a0000;margin-bottom:14px;}
+#disasterBanner .db-img{display:block;max-width:min(80vw,560px);max-height:48vh;object-fit:contain;border-radius:10px;margin:0 auto 16px;box-shadow:0 0 40px rgba(0,0,0,.7);animation:db-img-in .6s ease-out both;}
+#disasterBanner .db-text{font-family:var(--fd);font-size:1.15em;color:var(--text);text-shadow:0 0 10px rgba(0,0,0,.8);max-width:80vw;}
+@keyframes db-img-in{from{opacity:0;transform:scale(1.15);}to{opacity:1;transform:scale(1);}}
+@keyframes db-pop{from{opacity:0;transform:scale(1.4);}to{opacity:1;transform:scale(1);}}
+/* 予知の祈祷 結果表示（画面中央・大きめ） */
+#foresightBanner{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:121;background:rgba(6,3,16,.85);}
+#foresightBanner .fs-inner{text-align:center;max-width:80vw;animation:db-pop .45s ease-out both;padding:28px 36px;border-radius:16px;background:linear-gradient(180deg,rgba(36,26,77,.7),rgba(21,15,48,.85));box-shadow:0 0 50px rgba(0,0,0,.6);}
+#foresightBanner .fs-title{font-family:var(--fd);font-size:1.3em;font-weight:700;letter-spacing:.1em;margin-bottom:14px;}
+#foresightBanner .fs-title.positive{color:#ff5252;text-shadow:0 0 24px rgba(255,60,60,.6);}
+#foresightBanner .fs-title.negative{color:var(--teal);text-shadow:0 0 24px rgba(45,212,191,.5);}
+#foresightBanner .fs-text{font-family:var(--fd);font-size:1.5em;color:var(--text);line-height:1.6;text-shadow:0 0 10px rgba(0,0,0,.8);}
 @keyframes ev-pop{from{opacity:0;transform:scale(.9);}to{opacity:1;transform:scale(1);}}
 /* レベルアップバナー */
 #lvUpBanner{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);display:none;z-index:95;pointer-events:none;}
@@ -288,6 +308,9 @@ button.ability-glow{animation:abglow 1.2s ease-in-out infinite alternate;border-
 <!-- turn banner -->
 <div id="turnBanner"><div class="tb-inner" id="turnBannerText"></div></div>
 <div id="eventBanner"><div class="ev-inner" id="eventBannerText"></div></div>
+<div id="disasterBanner"><div class="db-inner"><div class="db-title">災害発生</div><img id="disasterBannerImg" class="db-img" src=""><div class="db-text" id="disasterBannerText"></div></div></div>
+<div id="foresightBanner"><div class="fs-inner"><div class="fs-title" id="foresightTitle">予知の祈祷</div><div class="fs-text" id="foresightText"></div></div></div>
+<div id="disasterDiceOverlay"><div class="ddo-inner"><div class="ddo-intro" id="disasterDiceIntro"></div><div class="d3-wrap" id="disasterDiceWrap"></div><div class="ddo-result" id="disasterDiceResult"></div></div></div>
 <div id="lvUpBanner"><div class="lvu-inner" id="lvUpText"></div></div>
 <div id="hpEffectOverlay"><div class="hp-effect-flash" id="hpFlash"></div><div class="hp-effect-num" id="hpEffectNum"></div></div>
 <div id="abilityActivationOverlay"><img id="aaImg" src="" style="display:none;"><div class="aa-text" id="aaText"></div></div>
@@ -694,6 +717,18 @@ $('confirmPowersBtn').onclick=()=>socket.emit('confirmPowers');
 $('backToTopBtn').onclick=()=>{socket.emit('leaveRoom');location.reload();};
 socket.on('errorMsg',({message})=>{$('error').style.color='var(--danger)';$('error').textContent=message;setTimeout(()=>{$('error').textContent='';},3000);});
 socket.on('precognitionResult',({message})=>{$('error').style.color='var(--teal)';$('error').textContent=message;setTimeout(()=>{$('error').textContent='';},4000);});
+socket.on('disasterForesightResult',({message,positive})=>{
+  queueAnim(done=>{
+    sfxEvent();
+    $('foresightTitle').className='fs-title '+(positive?'positive':'negative');
+    $('foresightText').textContent=message;
+    $('foresightBanner').style.display='flex';
+    setTimeout(()=>{
+      $('foresightBanner').style.display='none';
+      done();
+    },2800);
+  });
+});
 
 function bar(v,m,cls){return'<div class="bar-bg"><div class="'+cls+'" style="width:'+Math.max(0,Math.min(100,v/m*100))+'%"></div></div>';}
 function barXP(v,m){return'<div class="bar-bg-xp"><div class="bar-xp" style="width:'+Math.max(0,Math.min(100,v/m*100))+'%"></div></div>';}
@@ -963,7 +998,7 @@ function runNextAnim(){
   const watchdog=setTimeout(()=>{
     console.error('[animQueue] watchdog timeout — forcing advance');
     // 開いたままの可能性があるオーバーレイを強制的に閉じる
-    ['diceOverlay','battleOverlay','hpEffectOverlay','abilityActivationOverlay','battleChoiceModal','counterChoiceModal','turnBanner','lvUpBanner','eventBanner'].forEach(id=>{
+    ['diceOverlay','battleOverlay','hpEffectOverlay','abilityActivationOverlay','battleChoiceModal','counterChoiceModal','turnBanner','lvUpBanner','eventBanner','disasterBanner','foresightBanner','disasterDiceOverlay'].forEach(id=>{
       const el=document.getElementById(id);
       if(el) el.style.display='none';
     });
@@ -974,7 +1009,7 @@ function runNextAnim(){
     fn(advance);
   }catch(err){
     console.error('[animQueue] task threw an error, advancing queue anyway:',err);
-    ['diceOverlay','battleOverlay','hpEffectOverlay','abilityActivationOverlay','battleChoiceModal','counterChoiceModal'].forEach(id=>{
+    ['diceOverlay','battleOverlay','hpEffectOverlay','abilityActivationOverlay','battleChoiceModal','counterChoiceModal','disasterDiceOverlay'].forEach(id=>{
       const el=document.getElementById(id);
       if(el) el.style.display='none';
     });
@@ -1296,6 +1331,70 @@ socket.on('cellEventResult',({playerId,label,moveDelta,finalPos})=>{
         } else {done();}
       },2200);
     } else {done();}
+  });
+});
+
+/* ---- disasterTriggered（ゲーム中1度だけの災害イベント） ---- */
+socket.on('disasterTriggered',({name,label,image})=>{
+  queueAnim(done=>{
+    sfxEvent();
+    $('disasterBannerImg').src=image?('/img/disasters/'+image+'.png'):'';
+    $('disasterBannerImg').style.display=image?'block':'none';
+    $('disasterBannerText').textContent=label||name||'';
+    $('disasterBanner').style.display='flex';
+    setTimeout(()=>{
+      $('disasterBanner').style.display='none';
+      done();
+    },3200);
+  });
+});
+
+/* ---- 災害に伴うサイコロ演出（荒波・台風） ---- */
+socket.on('disasterPlayerRoll',({playerId,playerName,roll,introText,resultText})=>{
+  console.log('[disasterPlayerRoll] received',playerName,roll);
+  queueAnim(done=>{
+    try{
+      console.log('[disasterPlayerRoll] task running, overlay elem:',$('disasterDiceOverlay'),'wrap elem:',$('disasterDiceWrap'));
+      // ① サイコロを振るまでの処理（イントロ表示）
+      $('disasterDiceOverlay').style.display='flex';
+      $('disasterDiceIntro').textContent=introText||(playerName+'がサイコロを振る');
+      $('disasterDiceResult').textContent='';
+      const cube=mkCube($('disasterDiceWrap'));
+      console.log('[disasterPlayerRoll] cube created:',cube);
+      setTimeout(()=>{
+        try{
+          // ② サイコロを振るアニメーション
+          console.log('[disasterPlayerRoll] starting rollAnim, roll=',roll);
+          sfxDiceRoll();
+          rollAnim(cube,Math.min(6,Math.max(1,roll)),1600,null,()=>{
+            console.log('[disasterPlayerRoll] rollAnim finished');
+            // ③ アニメーション終了後に結果を表示
+            $('disasterDiceResult').textContent='出目 '+roll+' → '+(resultText||'');
+            setTimeout(()=>{
+              $('disasterDiceOverlay').style.display='none';
+              done();
+            },1600);
+          });
+        }catch(err){
+          console.error('[disasterPlayerRoll] error inside rollAnim setTimeout:',err);
+          $('disasterDiceOverlay').style.display='none';
+          done();
+        }
+      },900);
+    }catch(err){
+      console.error('[disasterPlayerRoll] error in task:',err);
+      $('disasterDiceOverlay').style.display='none';
+      done();
+    }
+  });
+});
+
+/* ---- 災害による移動結果（駒アニメーション） ---- */
+socket.on('disasterMoveResult',({playerId,fromPos,toPos})=>{
+  queueAnim(done=>{
+    animateTokenMove(playerId,fromPos,toPos,currentRoom,null,()=>{
+      setTimeout(done,400);
+    });
   });
 });
 
