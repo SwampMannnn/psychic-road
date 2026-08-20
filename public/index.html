@@ -15,10 +15,13 @@
 html,body{height:100%;overflow-y:auto;}
 body{font-family:var(--fb);background:radial-gradient(circle at 20% 0%,#241a4d,var(--bg) 55%);color:var(--text);}
 .wrap{max-width:1100px;margin:0 auto;padding:8px 12px;min-height:100vh;display:flex;flex-direction:column;}
+.wrap.in-game{height:100vh;overflow:hidden;max-width:none;}
 .top-bar{text-align:center;flex-shrink:0;padding-bottom:4px;}
+.top-bar.hidden{display:none;}
 .top-bar h1{font-family:var(--fd);font-weight:700;letter-spacing:.08em;font-size:1.2rem;background:linear-gradient(90deg,var(--teal),var(--vio));-webkit-background-clip:text;background-clip:text;color:transparent;display:inline;}
 .top-bar .sub{color:var(--dim);font-size:.72em;margin-left:8px;}
-#error{color:var(--danger);font-size:.82em;text-align:center;min-height:1em;}
+#error{position:fixed;top:4px;left:50%;transform:translateX(-50%);color:var(--danger);font-size:.82em;text-align:center;min-height:1em;z-index:200;pointer-events:none;background:rgba(6,3,16,.85);padding:2px 12px;border-radius:6px;}
+#error:empty{background:transparent;}
 /* --- panels --- */
 .panel{border:1px solid var(--panel-line);border-radius:10px;padding:12px;background:linear-gradient(180deg,rgba(255,255,255,.015),rgba(0,0,0,.1)),var(--panel);box-shadow:0 4px 16px rgba(0,0,0,.3);}
 input{padding:6px 10px;background:#13102a;border:1px solid var(--panel-line);border-radius:6px;color:var(--text);font-family:var(--fb);font-size:.85em;}
@@ -43,7 +46,9 @@ h3{font-family:var(--fd);font-size:.82rem;color:var(--dim);margin:8px 0 4px;}
 .lv{font-size:.7em;font-weight:700;color:var(--gold);margin-left:4px;}
 .sr{font-size:.72em;color:var(--dim);margin-top:1px;}
 /* pre-game centered */
-#entry,#lobby,#roleSelect,#finished{max-width:420px;margin:20px auto;}
+#entry,#lobby,#roleSelect{max-width:420px;margin:20px auto;}
+#finished{display:none;position:fixed;inset:0;z-index:60;align-items:center;justify-content:center;background:rgba(6,3,16,.9);}
+#finished .panel{max-width:420px;width:90%;}
 .role-card{border:1px solid var(--panel-line);border-radius:8px;padding:10px;margin-bottom:8px;background:rgba(255,255,255,.02);display:flex;justify-content:space-between;align-items:center;gap:10px;}
 /* role carousel */
 #roleSelect{max-width:520px;margin:20px auto;}
@@ -65,18 +70,23 @@ h3{font-family:var(--fd);font-size:.82rem;color:var(--dim);margin:8px 0 4px;}
 .p-card-img{width:32px;height:32px;border-radius:6px;object-fit:cover;flex-shrink:0;border:1px solid var(--panel-line);}
 /* ===== GAME LAYOUT (3-column) ===== */
 #game{display:none;flex:1;min-height:0;}
-.game-grid{display:grid;grid-template-columns:200px 1fr 200px;grid-template-rows:auto 1fr auto;gap:8px;min-height:400px;}
-.game-header{grid-column:1/4;display:flex;justify-content:center;align-items:baseline;gap:12px;}
+.game-grid{display:grid;grid-template-columns:220px 1fr 220px;grid-template-rows:auto 1fr;gap:8px;height:100%;min-height:0;}
+.game-header{grid-column:1/4;display:flex;justify-content:center;align-items:baseline;gap:12px;flex-shrink:0;}
 .game-header h2{margin:0;}
-.col-left{grid-column:1;grid-row:2;overflow-y:auto;display:flex;flex-direction:column;gap:6px;}
-.col-center{grid-column:2;grid-row:2;display:flex;align-items:center;justify-content:center;min-height:0;}
+.col-left{grid-column:1;grid-row:2;overflow-y:auto;display:flex;flex-direction:column;gap:6px;min-height:0;}
+.col-center{grid-column:2;grid-row:2;display:flex;align-items:center;justify-content:center;min-height:0;overflow:hidden;}
 .col-center canvas{border-radius:10px;border:1px solid var(--panel-line);box-shadow:0 4px 20px rgba(0,0,0,.5);max-width:100%;max-height:100%;object-fit:contain;}
-.col-right{grid-column:3;grid-row:2;overflow-y:auto;display:flex;flex-direction:column;gap:6px;}
-.game-footer{grid-column:1/4;grid-row:3;}
+.col-right{grid-column:3;grid-row:2;overflow-y:auto;display:flex;flex-direction:column;gap:6px;min-height:0;}
 .p-card{border:1px solid var(--panel-line);border-radius:8px;padding:8px;background:rgba(255,255,255,.02);}
 .p-name{font-size:.82em;display:flex;align-items:center;gap:4px;}
 .p-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
 #log{max-height:100px;overflow-y:auto;background:#0d0920;padding:6px 8px;border-radius:8px;font-size:.72em;border:1px solid var(--panel-line);color:var(--dim);}
+/* カスタムスクロールバー（テーマカラーに合わせる） */
+.col-left,.col-right,#log{scrollbar-width:thin;scrollbar-color:var(--vio) transparent;}
+.col-left::-webkit-scrollbar,.col-right::-webkit-scrollbar,#log::-webkit-scrollbar{width:7px;}
+.col-left::-webkit-scrollbar-track,.col-right::-webkit-scrollbar-track,#log::-webkit-scrollbar-track{background:rgba(13,9,32,.4);border-radius:99px;}
+.col-left::-webkit-scrollbar-thumb,.col-right::-webkit-scrollbar-thumb,#log::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--vio),#5a3fb8);border-radius:99px;border:1px solid var(--panel-line);}
+.col-left::-webkit-scrollbar-thumb:hover,.col-right::-webkit-scrollbar-thumb:hover,#log::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#ad84ff,var(--vio));}
 #log div{margin-bottom:2px;line-height:1.3;}
 #log div:last-child{color:var(--text);}
 /* action buttons full width in right column */
@@ -168,14 +178,40 @@ button.ability-glow{animation:abglow 1.2s ease-in-out infinite alternate;border-
 #lvUpBanner{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);display:none;z-index:95;pointer-events:none;}
 #lvUpBanner .lvu-inner{font-family:var(--fd);font-size:1.5em;font-weight:700;color:var(--vio);background:linear-gradient(180deg,rgba(18,10,34,.95),rgba(18,10,34,.9));border:2px solid var(--vio);border-radius:14px;padding:20px 40px;text-align:center;box-shadow:0 0 30px rgba(155,107,255,.5);animation:lvu-pop .6s ease-out;}
 @keyframes lvu-pop{from{opacity:0;transform:scale(.7);}to{opacity:1;transform:scale(1);}}
+/* HP変動エフェクト */
+#hpEffectOverlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:92;pointer-events:none;}
+.hp-effect-num{font-family:var(--fd);font-size:4em;font-weight:900;text-shadow:0 0 30px rgba(0,0,0,.8),3px 3px 0 rgba(0,0,0,.5);animation:hp-num-pop .6s ease-out both;}
+.hp-effect-num.damage{color:#ef4576;}
+.hp-effect-num.heal{color:#2dd4bf;}
+@keyframes hp-num-pop{0%{opacity:0;transform:scale(2) translateY(20px);}50%{opacity:1;transform:scale(1) translateY(0);}100%{opacity:1;transform:scale(1) translateY(0);}}
+.hp-effect-flash{position:fixed;inset:0;pointer-events:none;animation:hp-flash .4s ease-out both;}
+.hp-effect-flash.damage{background:radial-gradient(circle,rgba(239,69,118,.3),transparent 70%);}
+.hp-effect-flash.heal{background:radial-gradient(circle,rgba(45,212,191,.3),transparent 70%);}
+@keyframes hp-flash{from{opacity:1;}to{opacity:0;}}
+/* 超能力発動オーバーレイ（専用） */
+#abilityActivationOverlay{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:93;background:rgba(6,3,16,.6);gap:14px;}
+#abilityActivationOverlay img{max-height:45vh;max-width:80vw;object-fit:contain;filter:drop-shadow(0 0 30px rgba(155,107,255,.6));animation:aa-img-pop .5s ease-out both;}
+#abilityActivationOverlay .aa-text{font-family:var(--fd);font-size:1.3em;font-weight:700;color:var(--vio);text-align:center;text-shadow:0 0 16px rgba(155,107,255,.6);animation:aa-text-pop .5s .15s ease-out both;padding:0 20px;}
+@keyframes aa-img-pop{from{opacity:0;transform:scale(.7);}to{opacity:1;transform:scale(1);}}
+@keyframes aa-text-pop{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+/* サイドバーダメージ表記 */
+.hp-change-badge{display:inline-block;font-family:var(--fd);font-weight:900;font-size:1.3em;padding:2px 8px;border-radius:6px;margin-left:6px;animation:hp-badge-pop .5s ease-out both;vertical-align:middle;}
+.hp-change-badge.damage{color:#fff;background:rgba(239,69,118,.7);text-shadow:0 0 8px rgba(239,69,118,.8);}
+.hp-change-badge.heal{color:#fff;background:rgba(45,212,191,.7);text-shadow:0 0 8px rgba(45,212,191,.8);}
+@keyframes hp-badge-pop{from{opacity:0;transform:translateY(-12px) scale(1.8);}to{opacity:1;transform:translateY(0) scale(1);}}
+/* 戦闘超能力選択モーダル */
+#battleChoiceModal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:110;background:rgba(6,3,16,.75);}
+#counterChoiceModal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:111;background:rgba(6,3,16,.8);}
+.bcm-card{background:linear-gradient(180deg,#241a4d,#150f30);border:2px solid var(--vio);border-radius:14px;padding:20px;max-width:360px;width:90%;box-shadow:0 0 40px rgba(155,107,255,.4);}
+.bcm-card button{width:100%;margin-bottom:6px;}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="top-bar">
+  <div class="top-bar" id="topBar">
     <h1>サイキック・ロード</h1><span class="sub">超能力者たちのすごろく</span>
-    <div id="error"></div>
   </div>
+  <div id="error"></div>
 
   <div id="entry" class="panel">
     <div><input id="nameInput" placeholder="表示名"/></div>
@@ -240,10 +276,12 @@ button.ability-glow{animation:abglow 1.2s ease-in-out infinite alternate;border-
     </div>
   </div>
 
-  <div id="finished" class="panel" style="display:none;">
-    <h2>ゲーム終了</h2>
-    <p id="winnerMsg" style="font-family:var(--fd);font-size:1.1em;color:var(--gold);"></p>
-    <button class="pri" id="backToTopBtn" style="margin-top:12px;">トップに戻る</button>
+  <div id="finished" style="display:none;">
+    <div class="panel">
+      <h2>ゲーム終了</h2>
+      <p id="winnerMsg" style="font-family:var(--fd);font-size:1.1em;color:var(--gold);"></p>
+      <button class="pri" id="backToTopBtn" style="margin-top:12px;">トップに戻る</button>
+    </div>
   </div>
 </div>
 
@@ -251,6 +289,14 @@ button.ability-glow{animation:abglow 1.2s ease-in-out infinite alternate;border-
 <div id="turnBanner"><div class="tb-inner" id="turnBannerText"></div></div>
 <div id="eventBanner"><div class="ev-inner" id="eventBannerText"></div></div>
 <div id="lvUpBanner"><div class="lvu-inner" id="lvUpText"></div></div>
+<div id="hpEffectOverlay"><div class="hp-effect-flash" id="hpFlash"></div><div class="hp-effect-num" id="hpEffectNum"></div></div>
+<div id="abilityActivationOverlay"><img id="aaImg" src="" style="display:none;"><div class="aa-text" id="aaText"></div></div>
+<div id="battleChoiceModal">
+  <div class="bcm-card" id="battleChoiceBody"></div>
+</div>
+<div id="counterChoiceModal">
+  <div class="bcm-card" id="counterChoiceBody"></div>
+</div>
 <div id="tooltip"></div>
 <!-- overlays -->
 <div id="diceOverlay">
@@ -429,6 +475,20 @@ function drawMap(cv,rm,tokenPosOverride){
     c.restore();
     c.fillStyle=isG?'#f2b705':isS?'#2dd4bf':'rgba(255,255,255,.35)';c.font='bold 7px sans-serif';c.textAlign='center';c.textBaseline='bottom';
     c.fillText(isG?'GOAL':isS?'START':i,cx,cy+R-1);
+    // 罠マーカー
+    const trapsHere=(rm.traps||[]).filter(t=>t.position===i);
+    if(trapsHere.length>0){
+      c.save();c.translate(cx,cy-R+8);
+      for(let k=0;k<Math.min(trapsHere.length,3);k++){
+        c.save();c.translate((k-Math.min(trapsHere.length,3)/2+0.5)*10,0);
+        c.fillStyle='#ff6b35';
+        c.beginPath();
+        c.moveTo(0,-5);c.quadraticCurveTo(3,-1,1,2);c.quadraticCurveTo(3,1,0,5);c.quadraticCurveTo(-3,1,-1,2);c.quadraticCurveTo(-3,-1,0,-5);
+        c.closePath();c.fill();
+        c.restore();
+      }
+      c.restore();
+    }
   }
   // tokens — draw icon images
   const toff=[{dx:-12,dy:-10},{dx:12,dy:-10},{dx:-12,dy:10},{dx:12,dy:10}];
@@ -468,13 +528,11 @@ Object.entries(ROLE_ICON).forEach(([k,v])=>{
 });
 
 // 駒の1マスずつ移動アニメーション
-let tokenAnim=null;
-let mapFrozen=false;
-let frozenPositions={};
-let pathBattleUI=false; // パス上戦闘選択UI表示中
+let pathBattleUI=false;
 
 function animateTokenMove(playerId, fromPos, toPos, room, onStep, onDone){
   if(tokenAnim&&tokenAnim.timer) clearTimeout(tokenAnim.timer);
+  displayPositions[playerId]=fromPos; // 開始位置を確定させる
   const dir=toPos>fromPos?1:(toPos<fromPos?-1:0);
   if(dir===0){if(onDone)onDone();return;}
   let cur=fromPos;
@@ -483,8 +541,9 @@ function animateTokenMove(playerId, fromPos, toPos, room, onStep, onDone){
   function step(){
     cur+=dir;
     tokenAnim.current=cur;
-    const override={};override[playerId]=cur;
-    drawMap($('mapCanvas'),currentRoom,override);
+    displayPositions[playerId]=cur; // 一歩ごとに「信頼できる表示位置」を更新
+    ensureDisplayPositionsInit(currentRoom);
+    drawMap($('mapCanvas'),currentRoom,currentDisplayOverrides());
     sfxStep();
     // onStepでtrueが返ったら一時停止（戦闘選択）
     if(onStep && onStep(cur)){
@@ -495,16 +554,92 @@ function animateTokenMove(playerId, fromPos, toPos, room, onStep, onDone){
       };
       return;
     }
-    if(cur===toPos){tokenAnim=null;if(onDone)onDone();flushPendingCellEvent();}
+    if(cur===toPos){tokenAnim=null;if(onDone)onDone();}
     else{tokenAnim.timer=setTimeout(step,450);}
   }
   tokenAnim.timer=setTimeout(step,300);
 }
 
-function showPathBattleChoice(pos, opponents){
+function showTargetPicker(pw){
+  const me=currentRoom?currentRoom.players.find(p=>p.id===myId):null;
+  if(!me){return;}
+  const targets=currentRoom.players.filter(p=>p.id!==myId&&p.position===me.position&&!p.finished&&p.incapacitatedTurns===0);
+  const bt=$('battleTargets');bt.innerHTML='';
+  if(targets.length===0){
+    const msg=document.createElement('div');
+    msg.style.cssText='font-size:.82em;color:var(--dim);margin-bottom:4px;';
+    msg.textContent='同じマスに対象がいません';
+    bt.appendChild(msg);
+    setTimeout(()=>{bt.innerHTML='';},1500);
+    return;
+  }
+  const label=document.createElement('div');
+  label.style.cssText='font-size:.82em;color:var(--vio);margin-bottom:4px;font-weight:700;';
+  label.textContent='「'+pw.name+'」の対象を選んでください';
+  bt.appendChild(label);
+  targets.forEach(t=>{
+    const b=document.createElement('button');
+    b.textContent=t.name+'を対象にする';
+    b.onclick=()=>{
+      socket.emit('useAbility',{powerId:pw.lineId,targetId:t.id});
+      bt.innerHTML='';
+    };
+    bt.appendChild(b);
+  });
+  const cancel=document.createElement('button');
+  cancel.className='dan';
+  cancel.textContent='キャンセル';
+  cancel.onclick=()=>{bt.innerHTML='';};
+  bt.appendChild(cancel);
+}
+
+function showCopyPicker(pw){
+  const me=currentRoom?currentRoom.players.find(p=>p.id===myId):null;
+  if(!me){return;}
+  const history=((currentRoom&&currentRoom.abilityHistoryByPosition&&currentRoom.abilityHistoryByPosition[me.position])||[]).filter(h=>h.ownerId!==myId);
+  const bt=$('battleTargets');bt.innerHTML='';
+  if(history.length===0){
+    const msg=document.createElement('div');
+    msg.style.cssText='font-size:.82em;color:var(--dim);margin-bottom:4px;';
+    msg.textContent='このマスでコピーできる超能力の使用履歴がありません';
+    bt.appendChild(msg);
+    setTimeout(()=>{bt.innerHTML='';},1800);
+    return;
+  }
+  const label=document.createElement('div');
+  label.style.cssText='font-size:.82em;color:var(--vio);margin-bottom:4px;font-weight:700;';
+  label.textContent='「'+pw.name+'」— コピーする超能力を選んでください';
+  bt.appendChild(label);
+  // 同じ超能力の重複表示を避け、直近の使用のみを表示する
+  const seen=new Set();
+  const uniqueHistory=[];
+  for(let i=history.length-1;i>=0;i--){
+    const h=history[i];
+    const key=h.ownerId+'|'+h.name;
+    if(seen.has(key)) continue;
+    seen.add(key);
+    uniqueHistory.push(h);
+  }
+  uniqueHistory.forEach(h=>{
+    const b=document.createElement('button');
+    b.style.textAlign='left';
+    b.innerHTML='<b>'+h.name+'</b> <span style="font-size:.7em;color:var(--dim);">('+h.ownerName+'が使用)</span><br><span style="font-size:.72em;color:var(--dim);">'+h.description+'</span>';
+    b.onclick=()=>{
+      socket.emit('useAbility',{powerId:pw.lineId,choiceId:h.id});
+      bt.innerHTML='';
+    };
+    bt.appendChild(b);
+  });
+  const cancel=document.createElement('button');
+  cancel.className='dan';
+  cancel.textContent='キャンセル';
+  cancel.onclick=()=>{bt.innerHTML='';};
+  bt.appendChild(cancel);
+}
+
+function showPathBattleChoice(pos, opponents, outerDone){
   const bt=$('battleTargets');bt.innerHTML='';
   pathBattleUI=true;
-  // パス上戦闘選択中はターン終了を非表示
   $('endTurnBtn').style.display='none';
   const label=document.createElement('div');
   label.style.cssText='font-size:.82em;color:var(--gold);margin-bottom:4px;font-weight:700;';
@@ -514,14 +649,13 @@ function showPathBattleChoice(pos, opponents){
     const b=document.createElement('button');b.className='dan';b.textContent=o.name+'に戦闘を仕掛ける';
     b.onclick=()=>{
       pathBattleUI=false;bt.innerHTML='';
-      // アニメーションを完全停止
-      if(tokenAnim){
-        if(tokenAnim.timer) clearTimeout(tokenAnim.timer);
-        tokenAnim=null;
-      }
-      // diceProcessingをリセットして次のダイスイベントを処理可能にする
-      setTimeout(()=>{diceProcessing=false;tryShowTurnStart();tryShowLevelUp();processNextDice();},3000);
+      // 現在位置を確定させてから移動タスクを終了する（駒のワープ防止）
+      if(tokenAnim){if(tokenAnim.timer) clearTimeout(tokenAnim.timer);tokenAnim=null;}
+      commitDisplayPosition(myId,pos);
+      drawMap($('mapCanvas'),currentRoom,currentDisplayOverrides());
       socket.emit('battleOnPath',{position:pos,opponentId:o.id});
+      // 移動タスクを完了扱いにし、以降の戦闘演出は独立したキュータスクとして進行させる
+      outerDone();
     };
     bt.appendChild(b);
   });
@@ -532,6 +666,8 @@ function showPathBattleChoice(pos, opponents){
   };
   bt.appendChild(skip);
 }
+
+// 超能力発動アニメーション（短いバナー）は下部でsetImage対応版を定義
 function drawTer(c,g){c.globalAlpha=.5;switch(g){
   case'grass':for(let i=-1;i<=1;i++){c.strokeStyle='#7ac060';c.lineWidth=1;c.beginPath();c.moveTo(i*5,-1);c.quadraticCurveTo(i*5-1,-9,i*5+2,-12);c.stroke();}break;
   case'tree':c.fillStyle='#2a7030';c.beginPath();c.moveTo(0,-13);c.lineTo(-7,-1);c.lineTo(7,-1);c.closePath();c.fill();c.beginPath();c.moveTo(0,-9);c.lineTo(-5,1);c.lineTo(5,1);c.closePath();c.fill();c.fillStyle='#6a4a30';c.fillRect(-1.2,1,2.4,5);break;
@@ -549,10 +685,7 @@ $('joinBtn').onclick=()=>socket.emit('joinRoom',{roomId:$('roomIdInput').value.t
 $('readyBtn').onclick=()=>socket.emit('toggleReady');
 $('startBtn').onclick=()=>socket.emit('startGame');
 $('addBotBtn').onclick=()=>{console.log('addBot clicked');socket.emit('addBot');};
-$('rollBtn').onclick=()=>{
-  if(diceProcessing && diceQueue.length===0 && !tokenAnim && !mapFrozen){diceProcessing=false;}
-  socket.emit('rollDice');
-};
+$('rollBtn').onclick=()=>{socket.emit('rollDice');};
 $('tripleDiceBtn').onclick=()=>{socket.emit('activateTripleDice');socket.emit('rollDice');};
 $('restBtn').onclick=()=>socket.emit('rest');
 $('abilityBtn').onclick=()=>{const p=$('abilityPanel');const show=p.style.display==='none';p.style.display=show?'block':'none';if(show)sfxAbilityOpen();};
@@ -604,10 +737,29 @@ $('carNext').onclick=()=>{const len=$('carTrack').children.length;carIndex=(carI
 function renderPowerReveal(r){
   const me=r.players.find(p=>p.id===myId);
   const list=$('powerRevealList');list.innerHTML='';
+  if(me&&me.superSetImage){
+    const img=document.createElement('img');
+    const src='/img/sets/'+me.superSetImage+'.png';
+    img.onerror=()=>{console.error('[画像読み込み失敗]',src);img.style.cssText='display:block;color:var(--danger);font-size:.8em;padding:8px;border:1px dashed var(--danger);text-align:center;';img.alt='画像が見つかりません: '+src;};
+    img.onload=()=>{console.log('[画像読み込み成功]',src);};
+    img.src=src;
+    img.style.cssText='width:100%;max-height:280px;object-fit:contain;border-radius:10px;margin-bottom:10px;';
+    list.appendChild(img);
+    const setTitle=document.createElement('div');
+    setTitle.style.cssText='font-family:var(--fd);color:var(--gold);font-size:1.1em;font-weight:700;text-align:center;margin-bottom:10px;';
+    setTitle.textContent='超能力セット「'+(me.superSetName||'')+'」';
+    list.appendChild(setTitle);
+  }
   if(me&&me.powers){
     me.powers.forEach(pw=>{
       const d=document.createElement('div');d.className='pw-card';
-      d.innerHTML='<div class="pw-name">'+pw.name+' <span style="font-size:.75em;color:var(--teal);">コスト:'+pw.cost+'</span> <span style="font-size:.7em;color:var(--dim);">['+timingLabel(pw.timing)+']</span></div><div class="pw-desc">'+pw.description+'</div>';
+      if(pw.locked){
+        d.style.opacity='.5';
+        d.innerHTML='<div class="pw-name">'+pw.name+' <span style="font-size:.7em;color:var(--dim);">(未解放)</span></div><div class="pw-desc">'+pw.description+'</div>';
+      } else {
+        const typeTag=pw.type==='counter'?'<span style="color:#ff8a8a;">[カウンター]</span>':'';
+        d.innerHTML='<div class="pw-name">'+pw.name+' <span style="font-size:.75em;color:var(--teal);">コスト:'+pw.cost+'</span> <span style="font-size:.7em;color:var(--dim);">['+timingLabel(pw.timing)+']</span> '+typeTag+'</div><div class="pw-desc">'+pw.description+'</div>';
+      }
       list.appendChild(d);
     });
   }
@@ -639,20 +791,46 @@ document.addEventListener('mouseout',e=>{
   if(e.target.closest('.role-tip')){tipEl.style.display='none';}
 });
 
+// displayPositionsは「実際に画面に表示してよい」と明示的に確定した位置のみを保持する、
+// ただ一つの信頼できる情報源(single source of truth)。
+// サーバーから来た生のroom.players[].positionを直接描画に使うことは絶対にしない。
+// 各プレイヤーの位置は、そのプレイヤーの移動アニメーションが実際に進行/完了した
+// タイミングでのみ更新される（animateTokenMove内、または戦闘後退などの明示的な更新箇所）。
+let displayPositions={};
+
+function currentDisplayOverrides(){
+  const o={...displayPositions};
+  if(tokenAnim) o[tokenAnim.playerId]=tokenAnim.current;
+  return o;
+}
+
+// 明示的に「このプレイヤーは今この位置にいることが確定した」と印をつける。
+// アニメーション完了時や、戦闘後退のように瞬間的な位置変化の直後にのみ呼ぶこと。
+function commitDisplayPosition(playerId,pos){
+  if(pos==null) return;
+  displayPositions[playerId]=pos;
+}
+
+// displayPositionsに未登録のプレイヤー（新規参加者など）だけを、
+// サーバーの現在位置で安全に初期化する（既存プレイヤーの値は絶対に上書きしない）。
+function ensureDisplayPositionsInit(r){
+  if(!r||!r.players) return;
+  r.players.forEach(p=>{
+    if(displayPositions[p.id]===undefined) displayPositions[p.id]=p.position;
+  });
+}
+
+function renderGameMapOnly(r){
+  ensureDisplayPositionsInit(r);
+  drawMap($('mapCanvas'),r,currentDisplayOverrides());
+}
+
 function renderGame(r){
-  // ダイスアニメ中・駒移動アニメ中はマップ再描画をスキップ
-  if(!mapFrozen && !tokenAnim){
-    drawMap($('mapCanvas'),r);
-  } else if(tokenAnim){
-    const override={};override[tokenAnim.playerId]=tokenAnim.current;
-    drawMap($('mapCanvas'),r,override);
-  } else if(mapFrozen){
-    drawMap($('mapCanvas'),r,frozenPositions);
-  }
+  renderGameMapOnly(r);
   // left column — player cards
   const left=$('colLeft');left.innerHTML='';
   r.players.forEach(p=>{
-    const d=document.createElement('div');d.className='p-card';
+    const d=document.createElement('div');d.className='p-card';d.dataset.playerId=p.id;
     let badges='';
     if(p.id===r.currentTurnId) badges+='<span class="tb">手番</span>';
     if(p.incapacitatedTurns>0) badges+='<span class="db">不能('+p.incapacitatedTurns+')</span>';
@@ -660,9 +838,9 @@ function renderGame(r){
     const roleImgTag=roleImgSrc?'<img class="p-card-img" src="'+roleImgSrc+'">':'';
     d.innerHTML='<div class="p-name">'+roleImgTag+'<span class="p-dot" style="background:'+p.color+'"></span>'+(p.id===myId?'<b class="me">'+p.name+'</b>':p.name)+badges+'</div>'
       +'<div class="sr"><span class="role-tip" data-tip="'+escHtml(getRoleDesc(p.roleName,r))+'">'+p.roleName+'</span>'
-      +(p.id===myId?' / '+(p.powers.map(pw=>pw.name!=='???'?'<span class="role-tip" data-tip="'+escHtml(pw.description+'\nコスト: PSY '+pw.cost+' ['+timingLabel(pw.timing)+']')+'">'+pw.name+(pw.evolved?' ★':'')+'</span>':pw.name).join(', ')||'-'):' / ???')+'</div>'
-      +'<div class="sr">HP '+p.hp+'/'+p.maxHp+'</div>'+bar(p.hp,p.maxHp,'bar-hp')
-      +'<div class="sr">PSY '+p.energy+'/'+p.maxEnergy+'</div>'+bar(p.energy,p.maxEnergy,'bar-en')
+      +(p.id===myId?' / '+(p.powers.map(pw=>pw.name==='???'?pw.name:(pw.locked?'<span style="color:var(--dim);">'+pw.name+'(未解放)</span>':'<span class="role-tip" data-tip="'+escHtml(pw.description+'\nコスト: PSY '+pw.cost+' ['+timingLabel(pw.timing)+']')+'">'+pw.name+(pw.evolved?' ★':'')+'</span>')).join(', ')||'-'):' / ???')+'</div>'
+      +'<div class="sr hp-row-val">HP '+p.hp+'/'+p.maxHp+'</div>'+bar(p.hp,p.maxHp,'bar-hp')
+      +'<div class="sr en-row-val">PSY '+p.energy+'/'+p.maxEnergy+'</div>'+bar(p.energy,p.maxEnergy,'bar-en')
       +'<div class="sr" style="color:var(--gold);">Lv.'+(p.level||0)+' EXP '+(p.xp||0)+'/'+(p.xpToNext||80)+'</div>'+barXP(p.xp||0,p.xpToNext||80)
       +'<div class="sr">位置 '+p.position+'/'+r.boardSize+'</div>';
     left.appendChild(d);
@@ -686,7 +864,8 @@ function renderGame(r){
     if(me&&me.powers){
       const usedT=me.usedTimings||[];
       me.powers.forEach(pw=>{
-        const timingOk=(pw.timing==='anytime')||(pw.timing==='beforeMove'&&!acted)||(pw.timing==='battle'&&!acted);
+        if(pw.locked||pw.type==='counter'||pw.timing==='battle') return; // 未解放・カウンター型・戦闘型は別UIで扱う
+        const timingOk=(pw.timing==='anytime')||(pw.timing==='beforeMove'&&!acted);
         const canUse=me.energy>=pw.cost && timingOk && !usedT.includes(pw.timing);
         if(!canUse) return; // 使えない能力は表示しない
         anyUsable=true;
@@ -695,7 +874,19 @@ function renderGame(r){
         let tags='';
         if(pw.evolved) tags+='<span class="ab-tag evo">進化済</span>';
         card.innerHTML='<div><span class="ab-name">'+pw.name+'</span><span class="ab-cost">PSY '+pw.cost+'</span> <span style="font-size:.65em;color:var(--dim);">['+timingLabel(pw.timing)+']</span>'+tags+'</div><div class="ab-desc">'+pw.description+'</div>';
-        card.onclick=()=>{sfxAbilityPick();sfxMagic();socket.emit('useAbility',{powerId:pw.id});ap.style.display='none';};
+        card.onclick=()=>{
+          sfxAbilityPick();sfxMagic();
+          if(pw.requiresTarget){
+            ap.style.display='none';
+            showTargetPicker(pw);
+          } else if(pw.requiresHistoryChoice){
+            ap.style.display='none';
+            showCopyPicker(pw);
+          } else {
+            socket.emit('useAbility',{powerId:pw.lineId});
+            ap.style.display='none';
+          }
+        };
         ap.appendChild(card);
       });
     }
@@ -709,7 +900,9 @@ function renderGame(r){
         ? r.players.filter(p=>p.id!==myId&&p.position===me.position&&!p.finished&&p.incapacitatedTurns===0)
         : [];
       const bt=$('battleTargets');bt.innerHTML='';
-      others.forEach(o=>{const b=document.createElement('button');b.className='dan';b.textContent=o.name+'に戦闘を仕掛ける';b.onclick=()=>socket.emit('proposeBattle',{opponentId:o.id});bt.appendChild(b);});
+      others.forEach(o=>{const b=document.createElement('button');b.className='dan';b.textContent=o.name+'に戦闘を仕掛ける';
+        b.onclick=()=>{socket.emit('proposeBattle',{opponentId:o.id});};
+        bt.appendChild(b);});
     }
   }
   const lg=$('log');lg.innerHTML=r.log.map(l=>'<div>'+l+'</div>').join('');lg.scrollTop=lg.scrollHeight;
@@ -722,281 +915,522 @@ socket.on('roomUpdate',r=>{
   $('roleSelect').style.display=r.phase==='roleSelect'?'block':'none';
   $('powerReveal').style.display=r.phase==='powerReveal'?'block':'none';
   $('game').style.display=(r.phase==='playing'||r.phase==='finished')?'grid':'none';
-  $('finished').style.display=r.phase==='finished'?'block':'none';
+  $('finished').style.display=r.phase==='finished'?'flex':'none';
+  const inGame=(r.phase==='playing'||r.phase==='finished');
+  document.querySelector('.wrap').classList.toggle('in-game',inGame);
+  $('topBar').classList.toggle('hidden',inGame);
   $('roomIdLabel').textContent=r.id;
   if(r.phase==='lobby') renderLobby(r);
   if(r.phase==='roleSelect') renderRoleSelect(r);
   if(r.phase==='powerReveal') renderPowerReveal(r);
-  if(r.phase==='playing'||r.phase==='finished') renderGame(r);
+  if(r.phase==='playing'||r.phase==='finished'){
+    if(animBusy){
+      // アニメーション中はマップのみ更新、ステータスは保留
+      pendingRoomState=r;
+      renderGameMapOnly(r);
+    } else {
+      renderGame(r);
+    }
+  }
   if(r.phase==='finished'){const w=r.players.find(p=>p.id===r.winnerId);$('winnerMsg').textContent=w?w.name+' の勝利です！':'';sfxVictory();}
 });
 
-/* ---- TURN BANNER (queued) ---- */
-let turnStartQueue=[];
+/* ======== UNIFIED ANIMATION QUEUE ======== */
+let animQueue=[];
+let animBusy=false;
+let tokenAnim=null;
 
+function queueAnim(fn){animQueue.push(fn);if(!animBusy) runNextAnim();}
+function runNextAnim(){
+  if(animQueue.length===0){
+    animBusy=false;
+    // キュー完了時に保留していた最新状態を反映
+    if(pendingRoomState){renderGame(pendingRoomState);pendingRoomState=null;}
+    return;
+  }
+  animBusy=true;
+  const fn=animQueue.shift();
+  let advanced=false;
+  const advance=()=>{
+    if(advanced)return; // 二重呼び出し防止
+    advanced=true;
+    clearTimeout(watchdog);
+    animBusy=false;
+    runNextAnim();
+  };
+  // ウォッチドッグ: 万一アニメーションが完了コールバックを呼ばない場合に
+  // キューが永久停止しないよう、最大15秒で強制的に次へ進める
+  const watchdog=setTimeout(()=>{
+    console.error('[animQueue] watchdog timeout — forcing advance');
+    // 開いたままの可能性があるオーバーレイを強制的に閉じる
+    ['diceOverlay','battleOverlay','hpEffectOverlay','abilityActivationOverlay','battleChoiceModal','counterChoiceModal','turnBanner','lvUpBanner','eventBanner'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el) el.style.display='none';
+    });
+    tokenAnim=null;
+    advance();
+  },15000);
+  try{
+    fn(advance);
+  }catch(err){
+    console.error('[animQueue] task threw an error, advancing queue anyway:',err);
+    ['diceOverlay','battleOverlay','hpEffectOverlay','abilityActivationOverlay','battleChoiceModal','counterChoiceModal'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el) el.style.display='none';
+    });
+    tokenAnim=null;
+    advance();
+  }
+}
+let pendingRoomState=null;
+
+/* ---- 戦闘超能力選択（相互選択） ---- */
+let currentBattleChoiceDone=null;
+
+socket.on('battleChoicePending',({opponentName})=>{
+  console.log('[battleChoicePending] received, opponent:',opponentName);
+  // 前のターン/戦闘の演出が全て終わるまで、このモーダルは表示されない
+  queueAnim(done=>{
+    console.log('[battleChoicePending] showing modal now');
+    currentBattleChoiceDone=done;
+    showBattleChoiceModal(opponentName);
+  });
+});
+
+function showBattleChoiceModal(opponentName){
+  const me=currentRoom?currentRoom.players.find(p=>p.id===myId):null;
+  const body=$('battleChoiceBody');
+  body.innerHTML='';
+  const title=document.createElement('div');
+  title.style.cssText='font-family:var(--fd);color:var(--gold);font-weight:700;margin-bottom:10px;text-align:center;';
+  title.textContent=opponentName+' との戦闘 — 超能力を使いますか？';
+  body.appendChild(title);
+  const usedT=(me&&me.usedTimings)||[];
+  const hasCopies=((me&&me.powers)||[]).some(p=>p.isCopy);
+  const abilities=((me&&me.powers)||[]).filter(pw=>{
+    if(pw.locked||pw.timing!=='battle'||pw.type!=='self') return false;
+    if(me.energy<pw.cost) return false;
+    if(usedT.includes('battle')) return false;
+    if((pw.name==='トラッシュ'||pw.name==='クリアー')&&!hasCopies) return false;
+    return true;
+  });
+  abilities.forEach(pw=>{
+    const b=document.createElement('button');
+    b.style.textAlign='left';
+    b.innerHTML='<b>'+pw.name+'</b> <span style="color:var(--teal);font-size:.8em;">PSY '+pw.cost+'</span><br><span style="font-size:.75em;color:var(--dim);">'+pw.description+'</span>';
+    b.onclick=()=>{submitBattleChoice(pw.lineId);};
+    body.appendChild(b);
+  });
+  const skip=document.createElement('button');
+  skip.className='dan';
+  skip.textContent='使用しない';
+  skip.onclick=()=>{submitBattleChoice(null);};
+  body.appendChild(skip);
+  $('battleChoiceModal').style.display='flex';
+}
+
+function submitBattleChoice(powerId){
+  console.log('[submitBattleChoice] sending powerId:',powerId);
+  socket.emit('submitBattleChoice',{powerId});
+  const body=$('battleChoiceBody');
+  body.innerHTML='<div style="text-align:center;color:var(--dim);padding:24px 0;">相手の選択を待っています…</div>';
+  // 自分の選択が終わった時点でこのタスクは完了扱いにする。
+  // 実際の戦闘発動演出（battleAbilityActivated/battleRolled）は
+  // 相手の選択後に届く別タスクとして、キューの後続に自然に積まれる。
+  if(currentBattleChoiceDone){
+    const d=currentBattleChoiceDone;
+    currentBattleChoiceDone=null;
+    d();
+  }
+}
+
+/* ---- カウンター発動機会 ---- */
+let currentCounterChoiceDone=null;
+
+socket.on('counterOpportunity',({casterName,powerName})=>{
+  console.log('[counterOpportunity] received',casterName,powerName);
+  queueAnim(done=>{
+    currentCounterChoiceDone=done;
+    showCounterChoiceModal(casterName,powerName);
+  });
+});
+
+function showCounterChoiceModal(casterName,powerName){
+  const me=currentRoom?currentRoom.players.find(p=>p.id===myId):null;
+  const body=$('counterChoiceBody');
+  body.innerHTML='';
+  const title=document.createElement('div');
+  title.style.cssText='font-family:var(--fd);color:var(--danger);font-weight:700;margin-bottom:10px;text-align:center;';
+  title.textContent=casterName+'が「'+powerName+'」を発動しようとしています！';
+  body.appendChild(title);
+  const usedT=(me&&me.usedTimings)||[];
+  const counters=((me&&me.powers)||[]).filter(pw=>!pw.locked&&pw.timing==='battle'&&pw.type==='counter'&&me.energy>=pw.cost&&!usedT.includes('battle'));
+  counters.forEach(pw=>{
+    const b=document.createElement('button');
+    b.style.textAlign='left';
+    b.innerHTML='<b>'+pw.name+'</b> <span style="color:var(--teal);font-size:.8em;">PSY '+pw.cost+'</span><br><span style="font-size:.75em;color:var(--dim);">'+pw.description+'</span>';
+    b.onclick=()=>{submitCounterChoice(pw.lineId);};
+    body.appendChild(b);
+  });
+  const skip=document.createElement('button');
+  skip.className='dan';
+  skip.textContent='カウンターしない';
+  skip.onclick=()=>{submitCounterChoice(null);};
+  body.appendChild(skip);
+  $('counterChoiceModal').style.display='flex';
+}
+
+function submitCounterChoice(powerId){
+  socket.emit('submitCounterChoice',{powerId});
+  $('counterChoiceModal').style.display='none';
+  if(currentCounterChoiceDone){
+    const d=currentCounterChoiceDone;
+    currentCounterChoiceDone=null;
+    d();
+  }
+}
+
+socket.on('abilityActivated',({playerId,playerName,powerName,setImage})=>{
+  queueAnim(done=>{
+    sfxMagic();
+    showAbilityActivation(playerName+'の「'+powerName+'」',done,setImage);
+  });
+});
+
+socket.on('battleAbilityActivated',({playerId,playerName,powerName,setImage})=>{
+  $('battleChoiceModal').style.display='none';
+  queueAnim(done=>{
+    sfxMagic();
+    showAbilityActivation(playerName+'の「'+powerName+'」',done,setImage);
+  });
+});
+
+/* ---- turnStart ---- */
 socket.on('turnStart',({playerId,playerName})=>{
-  turnStartQueue.push({playerId,playerName});
-  tryShowTurnStart();
+  queueAnim(done=>{
+    sfxTurn();
+    const isMe=playerId===myId;
+    $('turnBannerText').textContent=isMe?'あなたのターン':playerName+' のターン';
+    $('turnBannerText').style.color=isMe?'var(--gold)':'var(--text)';
+    $('turnBanner').style.display='flex';
+    setTimeout(()=>{$('turnBanner').style.display='none';done();},1800);
+  });
 });
 
-function tryShowTurnStart(){
-  if(turnStartQueue.length===0) return;
-  if(battleAnimating||diceProcessing||tokenAnim||mapFrozen){
-    setTimeout(tryShowTurnStart,500);
-    return;
-  }
-  const{playerId,playerName}=turnStartQueue.shift();
-  sfxTurn();
-  const isMe=playerId===myId;
-  const txt=isMe?'あなたのターン':playerName+' のターン';
-  $('turnBannerText').textContent=txt;
-  $('turnBannerText').style.color=isMe?'var(--gold)':'var(--text)';
-  $('turnBanner').style.display='flex';
-  setTimeout(()=>{$('turnBanner').style.display='none';},1800);
-}
-
-let levelUpQueue=[];
-
+/* ---- levelUp ---- */
 socket.on('levelUp',({playerId,playerName,level})=>{
-  levelUpQueue.push({playerName,level});
-  tryShowLevelUp();
+  queueAnim(done=>{
+    $('lvUpText').textContent=playerName+' Lv.'+level+'に到達！';
+    $('lvUpBanner').style.display='block';
+    setTimeout(()=>{$('lvUpBanner').style.display='none';done();},2500);
+  });
 });
 
-function tryShowLevelUp(){
-  if(levelUpQueue.length===0) return;
-  if(battleAnimating||diceProcessing||tokenAnim||mapFrozen){
-    setTimeout(tryShowLevelUp,500);
-    return;
-  }
-  const{playerName,level}=levelUpQueue.shift();
-  $('lvUpText').textContent=playerName+' Lv.'+level+'に到達！';
-  $('lvUpBanner').style.display='block';
-  setTimeout(()=>{$('lvUpBanner').style.display='none';tryShowLevelUp();},2500);
+/* ---- hpChange ---- */
+function refreshPlayerCard(playerId){
+  if(!currentRoom) return;
+  const p=currentRoom.players.find(pl=>pl.id===playerId);
+  if(!p) return;
+  const card=$('colLeft').querySelector('.p-card[data-player-id="'+playerId+'"]');
+  if(!card) return;
+  const hpRow=card.querySelector('.hp-row-val');
+  const hpBarInner=card.querySelector('.bar-hp');
+  const enRow=card.querySelector('.en-row-val');
+  const enBarInner=card.querySelector('.bar-en');
+  if(hpRow) hpRow.textContent='HP '+p.hp+'/'+p.maxHp;
+  if(hpBarInner) hpBarInner.style.width=Math.max(0,Math.min(100,p.hp/p.maxHp*100))+'%';
+  if(enRow) enRow.textContent='PSY '+p.energy+'/'+p.maxEnergy;
+  if(enBarInner) enBarInner.style.width=Math.max(0,Math.min(100,p.energy/p.maxEnergy*100))+'%';
 }
 
-/* ---- DICE EVENTS (queue) ---- */
-let diceQueue=[];
-let diceProcessing=false;
-let battleAnimating=false;
-
-socket.on('diceRolled',(data)=>{
-  diceQueue.push(data);
-  if(!diceProcessing&&!battleAnimating) processNextDice();
+socket.on('hpChange',({playerId,playerName,amount})=>{
+  queueAnim(done=>{
+    const isDmg=amount<0;
+    const cls=isDmg?'damage':'heal';
+    const txt=(isDmg?'':'+')+ amount;
+    if(playerId===myId){
+      $('hpFlash').className='hp-effect-flash '+cls;
+      $('hpFlash').style.animation='none';void $('hpFlash').offsetWidth;$('hpFlash').style.animation='hp-flash .4s ease-out both';
+    }
+    $('hpEffectNum').className='hp-effect-num '+cls;
+    $('hpEffectNum').textContent=playerName+' '+txt;
+    $('hpEffectNum').style.animation='none';void $('hpEffectNum').offsetWidth;$('hpEffectNum').style.animation='hp-num-pop .6s ease-out both';
+    $('hpEffectOverlay').style.display='flex';
+    setTimeout(()=>{
+      $('hpEffectOverlay').style.display='none';
+      // HPバーを実際に更新（currentRoomは常に最新のサーバー状態を保持している）
+      refreshPlayerCard(playerId);
+      const cards=$('colLeft').querySelectorAll('.p-card');
+      cards.forEach(card=>{
+        const nameEl=card.querySelector('.p-name');
+        if(nameEl&&nameEl.textContent.includes(playerName)){
+          const old=card.querySelector('.hp-change-badge');if(old)old.remove();
+          const badge=document.createElement('span');badge.className='hp-change-badge '+cls;badge.textContent=txt;
+          nameEl.appendChild(badge);
+          setTimeout(()=>{badge.style.opacity='0';setTimeout(()=>badge.remove(),500);},2000);
+        }
+      });
+      setTimeout(done,800);
+    },1000);
+  });
 });
 
-function processNextDice(){
-  if(diceQueue.length===0){diceProcessing=false;return;}
-  if(battleAnimating){setTimeout(processNextDice,500);return;}
-  diceProcessing=true;
-  const{playerId,baseRoll,bonus,total,startPos,finalPos:serverFinalPos,reroll,pathBattle,roleName,roleBonus,isGambler,gamblerAdjust,tripleDice}=diceQueue.shift();
+socket.on('energyChange',({playerId,playerName,amount})=>{
+  queueAnim(done=>{
+    const isDmg=amount<0;
+    const cls=isDmg?'damage':'heal';
+    const txt=(isDmg?'':'+')+ amount;
+    $('hpEffectNum').className='hp-effect-num '+cls;
+    $('hpEffectNum').style.color=isDmg?'':'var(--teal)';
+    $('hpEffectNum').textContent=playerName+' PSY'+txt;
+    $('hpEffectNum').style.animation='none';void $('hpEffectNum').offsetWidth;$('hpEffectNum').style.animation='hp-num-pop .6s ease-out both';
+    $('hpEffectOverlay').style.display='flex';
+    setTimeout(()=>{
+      $('hpEffectOverlay').style.display='none';
+      $('hpEffectNum').style.color='';
+      refreshPlayerCard(playerId);
+      const cards=$('colLeft').querySelectorAll('.p-card');
+      cards.forEach(card=>{
+        const nameEl=card.querySelector('.p-name');
+        if(nameEl&&nameEl.textContent.includes(playerName)){
+          const old=card.querySelector('.hp-change-badge');if(old)old.remove();
+          const badge=document.createElement('span');badge.className='hp-change-badge '+cls;badge.style.background=isDmg?'':'rgba(45,212,191,.7)';badge.textContent='PSY'+txt;
+          nameEl.appendChild(badge);
+          setTimeout(()=>{badge.style.opacity='0';setTimeout(()=>badge.remove(),500);},2000);
+        }
+      });
+      setTimeout(done,800);
+    },1000);
+  });
+});
+
+/* ---- diceRolled ---- */
+socket.on('diceRolled',(data)=>{
+  queueAnim(done=>{processDice(data,done);});
+});
+
+function processDice({playerId,baseRoll,bonus,total,startPos,finalPos:serverFinalPos,reroll,pathBattle,roleName,roleBonus,isGambler,gamblerAdjust,tripleDice,timeEffect},done){
   const pl=currentRoom?currentRoom.players.find(p=>p.id===playerId):null;
   const nm=pl?pl.name:'?';
-  frozenPositions={};
-  if(currentRoom){currentRoom.players.forEach(p=>{frozenPositions[p.id]=p.position;});}
-  frozenPositions[playerId]=startPos;
-  mapFrozen=true;
-
-  $('diceOverlay').style.display='flex';
-  $('diceInfo').textContent='';$('diceShadow').style.display='block';
-  pendingCellEvent=null;
+  // このプレイヤーの表示位置を、サーバーが伝えてきた「移動前の位置」に確定させる。
+  // これによりダイス演出中に別の更新が来ても、この値が動くことは絶対にない。
+  commitDisplayPosition(playerId,startPos);
+  $('diceOverlay').style.display='flex';$('diceInfo').textContent='';$('diceShadow').style.display='block';
   sfxDiceRoll();
-
   const isTriple=tripleDice&&tripleDice.length===3;
   $('singleDiceArea').style.display=isTriple?'none':'block';
   $('tripleDiceArea').style.display=isTriple?'flex':'none';
 
-  if(isTriple){
-    const c1=mkCube($('diceWrap1')),c2=mkCube($('diceWrap2')),c3=mkCube($('diceWrap3'));
-    let done=0;
-    function onTripleDone(){
-      if(++done<3) return;
-      $('diceShadow').style.display='none';
-      let infoHtml=nm+': <span style="color:var(--vio);font-weight:700;">トリプルダイス!</span> ('+tripleDice[0]+'+'+tripleDice[1]+'+'+tripleDice[2]+'='+baseRoll+')';
-      if(roleBonus) infoHtml+=' <span style="color:#22d3ee;font-size:.8em;">'+roleName+'ボーナス +'+roleBonus+'</span>';
-      infoHtml+=' → <b>'+total+'マス</b>';
-      $('diceInfo').innerHTML=infoHtml;
-      afterDiceDisplay();
+  function afterDiceRoll(){
+    $('diceShadow').style.display='none';
+    let infoHtml='';
+    if(isTriple){
+      infoHtml=nm+': <span style="color:var(--vio);font-weight:700;">トリプルダイス!</span> ('+tripleDice[0]+'+'+tripleDice[1]+'+'+tripleDice[2]+'='+baseRoll+')';
+    } else {
+      infoHtml=nm+': 出目 '+baseRoll;
+      if(isGambler&&gamblerAdjust) infoHtml+=' <span style="color:#ff6b6b;font-size:.8em;">(ギャンブラー効果 '+(gamblerAdjust>0?'+':'')+gamblerAdjust+')</span>';
     }
-    rollAnim(c1,Math.min(6,Math.max(1,tripleDice[0])),1800+Math.random()*200,null,onTripleDone);
-    rollAnim(c2,Math.min(6,Math.max(1,tripleDice[1])),1800+Math.random()*200,null,onTripleDone);
-    rollAnim(c3,Math.min(6,Math.max(1,tripleDice[2])),1800+Math.random()*200,null,onTripleDone);
-  } else {
-    const cube=mkCube($('diceWrap'));
-    rollAnim(cube,Math.min(6,Math.max(1,baseRoll)),1800,$('diceShadow'),()=>{
-      $('diceShadow').style.display='none';
-      let infoHtml=nm+': 出目 '+baseRoll;
-      if(isGambler && gamblerAdjust) infoHtml+=' <span style="color:#ff6b6b;font-size:.8em;">(ギャンブラー効果 '+(gamblerAdjust>0?'+':'')+gamblerAdjust+')</span>';
-      if(roleBonus) infoHtml+=' <span style="color:#22d3ee;font-size:.8em;">'+roleName+'ボーナス +'+roleBonus+'</span>';
-      const abilityBonus=bonus-(roleBonus||0)-(gamblerAdjust||0);
-      if(abilityBonus) infoHtml+=' <span class="bonus">能力ボーナス +'+abilityBonus+'</span>';
-      infoHtml+=' → <b>'+total+'マス</b>';
-      $('diceInfo').innerHTML=infoHtml;
-      afterDiceDisplay();
-    });
-  }
-
-  function afterDiceDisplay(){
+    if(roleBonus) infoHtml+=' <span style="color:#22d3ee;font-size:.8em;">'+roleName+'ボーナス +'+roleBonus+'</span>';
+    const abilityBonus=bonus-(roleBonus||0)-(gamblerAdjust||0);
+    if(abilityBonus) infoHtml+=' <span class="bonus">能力ボーナス +'+abilityBonus+'</span>';
+    if(timeEffect) infoHtml+=' <span style="color:var(--gold);font-size:.8em;">('+timeEffect+')</span>';
+    infoHtml+=' → <b>'+total+'マス</b>';
+    $('diceInfo').innerHTML=infoHtml;
+    // reroll check
     const isMyTurn=playerId===myId;
     const me=currentRoom?currentRoom.players.find(p=>p.id===myId):null;
-    const canReroll=isMyTurn && me && me.canReroll && !reroll && !isTriple;
+    const canReroll=isMyTurn&&me&&me.canReroll&&!reroll&&!isTriple;
     if(canReroll){
       $('rerollArea').style.display='block';
-      $('rerollBtn').onclick=()=>{
-        $('rerollArea').style.display='none';
-        $('diceOverlay').style.display='none';
-        mapFrozen=false;
-        diceProcessing=false;
-        socket.emit('rerollDice');
-      };
-      $('rerollSkipBtn').onclick=()=>{
-        $('rerollArea').style.display='none';
-        proceedAfterDice();
-      };
+      $('rerollBtn').onclick=()=>{$('rerollArea').style.display='none';$('diceOverlay').style.display='none';socket.emit('rerollDice');done();};
+      $('rerollSkipBtn').onclick=()=>{$('rerollArea').style.display='none';proceedToMove();};
     } else {
       $('rerollArea').style.display='none';
-      setTimeout(proceedAfterDice,1200);
+      setTimeout(proceedToMove,1200);
     }
-
-    function proceedAfterDice(){
+    function proceedToMove(){
       $('diceOverlay').style.display='none';
-      mapFrozen=false;
       const animTarget=(serverFinalPos!=null&&!isMyTurn)?serverFinalPos:Math.min(startPos+total,currentRoom?currentRoom.boardSize:34);
-
-      animateTokenMove(playerId, startPos, animTarget, currentRoom,
+      animateTokenMove(playerId,startPos,animTarget,currentRoom,
         (curPos)=>{
           if(!isMyTurn||curPos<=0||curPos===animTarget) return false;
-          const opps=(currentRoom?currentRoom.players:[]).filter(p=>
-            p.id!==playerId&&p.position===curPos&&!p.finished&&p.incapacitatedTurns===0
-          );
-          if(opps.length>0){
-            showPathBattleChoice(curPos,opps);
-            return true;
-          }
+          const opps=(currentRoom?currentRoom.players:[]).filter(p=>p.id!==playerId&&p.position===curPos&&!p.finished&&p.incapacitatedTurns===0);
+          if(opps.length>0){showPathBattleChoice(curPos,opps,done);return true;}
           return false;
         },
         ()=>{
           if(isMyTurn){socket.emit('confirmMove');}
           if(pathBattle){
-            setTimeout(()=>{
-              showBattleAnim(pathBattle,()=>{
-                setTimeout(()=>{diceProcessing=false;tryShowTurnStart();tryShowLevelUp();processNextDice();},2000);
-              });
-            },500);
+            setTimeout(()=>{showBattleAnim(pathBattle,()=>{setTimeout(done,500);});},500);
           } else {
-            setTimeout(()=>{diceProcessing=false;tryShowTurnStart();tryShowLevelUp();processNextDice();},2000);
+            setTimeout(done,500);
           }
         }
       );
-    } // end proceedAfterDice
-  } // end afterDiceDisplay
-} // end processNextDice
-
-// セルイベント結果（アニメーション完了後に表示）
-let pendingCellEvent=null;
-
-socket.on('cellEventResult',({playerId,label,moveDelta,finalPos})=>{
-  pendingCellEvent={playerId,label,moveDelta,finalPos};
-  // アニメーション中でなければ即表示
-  if(!tokenAnim&&!mapFrozen){flushPendingCellEvent();}
-});
-
-function flushPendingCellEvent(){
-  if(!pendingCellEvent) return;
-  const{playerId,label,moveDelta,finalPos}=pendingCellEvent;
-  pendingCellEvent=null;
-  if(label) showEventBanner(label);
-  if(moveDelta&&moveDelta!==0){
-    const curPos=finalPos-moveDelta;
-    setTimeout(()=>{
-      animateTokenMove(playerId,curPos,finalPos,currentRoom,null,null);
-    },1500);
+    }
+  }
+  if(isTriple){
+    const c1=mkCube($('diceWrap1')),c2=mkCube($('diceWrap2')),c3=mkCube($('diceWrap3'));
+    let dc=0;function tDone(){if(++dc<3)return;afterDiceRoll();}
+    rollAnim(c1,Math.min(6,Math.max(1,tripleDice[0])),1800+Math.random()*200,null,tDone);
+    rollAnim(c2,Math.min(6,Math.max(1,tripleDice[1])),1800+Math.random()*200,null,tDone);
+    rollAnim(c3,Math.min(6,Math.max(1,tripleDice[2])),1800+Math.random()*200,null,tDone);
+  } else {
+    const cube=mkCube($('diceWrap'));
+    rollAnim(cube,Math.min(6,Math.max(1,baseRoll)),1800,$('diceShadow'),afterDiceRoll);
   }
 }
 
-function showEventBanner(text){
-  sfxEvent();
-  $('eventBannerText').textContent=text;
-  $('eventBanner').style.display='block';
-  setTimeout(()=>{$('eventBanner').style.display='none';},2200);
-}
+/* ---- cellEventResult ---- */
+socket.on('cellEventResult',({playerId,label,moveDelta,finalPos})=>{
+  queueAnim(done=>{
+    if(label){
+      sfxEvent();
+      $('eventBannerText').textContent=label;
+      $('eventBanner').style.display='block';
+      setTimeout(()=>{
+        $('eventBanner').style.display='none';
+        if(moveDelta&&moveDelta!==0){
+          const curPos=finalPos-moveDelta;
+          animateTokenMove(playerId,curPos,finalPos,currentRoom,null,()=>{setTimeout(done,500);});
+        } else {done();}
+      },2200);
+    } else {done();}
+  });
+});
+
+/* ---- battleRolled ---- */
+socket.on('battleRolled',(data)=>{
+  $('battleChoiceModal').style.display='none';
+  queueAnim(done=>{showBattleAnim(data,done);});
+});
 
 function showBattleAnim(data,onDone){
-  const{aId,aName,aDie,aRoll,aRoleName,aRoleId,aBonus,bId,bName,bDie,bRoll,bRoleName,bRoleId,bBonus,dmg,dmgBonus,dmgReduction,result}=data;
+  const{aId,aName,aDie,aRoll,aRoleName,aRoleId,aBonus,bId,bName,bDie,bRoll,bRoleName,bRoleId,bBonus,dmg,dmgBonus,dmgReduction,result,evaded,evadedByName,knockedName,knockback,aFixed,bFixed,reflected,reflectedToName,aFinalPos,bFinalPos}=data;
   $('battleOverlay').style.display='flex';
-  $('btIntro').style.display='flex';
-  $('btDicePhase').style.display='none';
-  $('btResultBanner').style.display='none';
-  battleAnimating=true;
+  $('btIntro').style.display='flex';$('btDicePhase').style.display='none';$('btResultBanner').style.display='none';
   sfxBattle();
-
-  // Phase 1: キャラ画像登場 + VS
   const imgA=ROLE_BATTLE[aRoleId]?'/img/'+ROLE_BATTLE[aRoleId]+'.png':'/img/'+(ROLE_IMG[aRoleId]||'traveler')+'.png';
   const imgB=ROLE_BATTLE[bRoleId]?'/img/'+ROLE_BATTLE[bRoleId]+'.png':'/img/'+(ROLE_IMG[bRoleId]||'traveler')+'.png';
   $('btImgA').src=imgA;$('btImgB').src=imgB;
-  // re-trigger animation
-  $('btImgA').className='bt-char bt-char-left';
-  $('btImgB').className='bt-char bt-char-right';
-  $('btVsText').style.display='';
-  $('btVsText').style.animation='none';void $('btVsText').offsetWidth;$('btVsText').style.animation='bt-vs-pop .4s .5s ease-out both';
+  $('btImgA').className='bt-char bt-char-left';$('btImgB').className='bt-char bt-char-right';
+  $('btVsText').style.display='';$('btVsText').style.animation='none';void $('btVsText').offsetWidth;$('btVsText').style.animation='bt-vs-pop .4s .5s ease-out both';
 
-  // Phase 2: ダイスロール (1.8秒後に開始)
+  if(evaded){
+    // 戦闘回避（サイクロン等）: ダイスロールを行わず、キャラ登場の後すぐに結果を表示
+    setTimeout(()=>{
+      $('btIntro').style.display='none';
+      $('btVsText').style.display='none';$('btResultBanner').style.display='flex';
+      $('btResultTitle').textContent='戦闘不成立';
+      $('btResultTitle').style.animation='none';void $('btResultTitle').offsetWidth;$('btResultTitle').style.animation='bt-vs-pop .4s ease-out both';
+      $('btIntro').style.display='flex';$('btDicePhase').style.display='none';
+      $('btResA').textContent='';$('btResB').textContent='';
+      $('btResA').className='bt-result-label bt-result-left draw';
+      $('btResB').className='bt-result-label bt-result-right draw';
+      $('btResultBanner').querySelectorAll('.bt-evade-msg').forEach(e=>e.remove());
+      const msg=document.createElement('div');
+      msg.className='bt-evade-msg';
+      msg.style.cssText='position:absolute;bottom:12%;left:50%;transform:translateX(-50%);font-family:var(--fd);font-size:1.1em;color:var(--teal);text-align:center;text-shadow:0 0 10px rgba(0,0,0,.8);white-space:nowrap;';
+      // 後退マス数が0（タイムスライス等）の場合は後退の文言を出さない
+      msg.textContent=knockback?(evadedByName+'が戦闘を回避！ '+knockedName+'を'+knockback+'マス後退させた'):(evadedByName+'が戦闘を回避した！');
+      $('battleOverlay').appendChild(msg);
+      setTimeout(()=>{
+        msg.remove();
+        $('battleOverlay').style.display='none';
+        $('btResultTitle').textContent='RESULT';
+        // 後退による位置変化を、サーバーが確定した値でそのまま表示位置として確定させる
+        if(aId!=null&&aFinalPos!=null) commitDisplayPosition(aId,aFinalPos);
+        if(bId!=null&&bFinalPos!=null) commitDisplayPosition(bId,bFinalPos);
+        tokenAnim=null;
+        if(currentRoom) drawMap($('mapCanvas'),currentRoom,currentDisplayOverrides());
+        if(onDone)onDone();
+      },2400);
+    },1800);
+    return;
+  }
+
+  // Phase 2: dice (1.8s later)
   setTimeout(()=>{
-    $('btIntro').style.display='none';
-    $('btDicePhase').style.display='flex';
+    $('btIntro').style.display='none';$('btDicePhase').style.display='flex';
     $('btAN').textContent=aName;$('btBN').textContent=bName;
     $('btRA').textContent='';$('btRB').textContent='';$('btRT').textContent='';$('btDmg').textContent='';
     $('btBonusA').textContent='';$('btBonusB').textContent='';
-    const dieAFace=aDie!=null?aDie:Math.min(6,Math.max(1,aRoll));
-    const dieBFace=bDie!=null?bDie:Math.min(6,Math.max(1,bRoll));
-    const cA=mkCube($('btSA')),cB=mkCube($('btSB'));
     sfxBattle();
-    let done=0;
+    const dAF=aFixed?Math.max(1,aRoll):(aDie!=null?aDie:Math.min(6,Math.max(1,aRoll)));
+    const dBF=bFixed?Math.max(1,bRoll):(bDie!=null?bDie:Math.min(6,Math.max(1,bRoll)));
+    const cA=mkCube($('btSA')),cB=mkCube($('btSB'));
+    let dc=0;
     function fin(){
-      if(++done<2)return;
+      if(++dc<2)return;
       $('btRA').textContent=aRoll;$('btRB').textContent=bRoll;
-      if(aBonus) $('btBonusA').textContent=(aRoleName||'')+'ボーナス '+(aBonus>0?'+':'')+aBonus;
-      if(bBonus) $('btBonusB').textContent=(bRoleName||'')+'ボーナス '+(bBonus>0?'+':'')+bBonus;
+      if(aFixed) $('btBonusA').textContent='相手の能力で出目が固定された';
+      else if(aBonus) $('btBonusA').textContent=(aRoleName||'')+'ボーナス '+(aBonus>0?'+':'')+aBonus;
+      if(bFixed) $('btBonusB').textContent='相手の能力で出目が固定された';
+      else if(bBonus) $('btBonusB').textContent=(bRoleName||'')+'ボーナス '+(bBonus>0?'+':'')+bBonus;
       $('btRT').textContent=aRoll>bRoll?aName+' の勝利！':bRoll>aRoll?bName+' の勝利！':'引き分け';
-      if(dmg!=null){
+      if(reflected){
         const loserName=result==='a'?bName:aName;
-        let dmgText=loserName+'は体力'+dmg+'を失った';
-        const extra=[];
-        if(dmgBonus) extra.push('ダメージ+'+dmgBonus);
-        if(dmgReduction) extra.push('軽減-'+dmgReduction);
-        if(extra.length) dmgText+=' ('+extra.join('、')+')';
+        $('btDmg').textContent=loserName+'はタイムカウンターでダメージを無効化し、'+reflectedToName+'に反射した！';
+      } else if(dmg!=null){
+        const loserName=result==='a'?bName:aName;
+        let dmgText;
+        if(dmg===0 && data.blocked){
+          dmgText=loserName+'へのダメージはバリアで無効化された！';
+        } else {
+          dmgText=loserName+'は体力'+dmg+'を失った';
+          const extra=[];if(dmgBonus)extra.push('ダメージ+'+dmgBonus);if(dmgReduction)extra.push('軽減-'+dmgReduction);
+          if(extra.length)dmgText+=' ('+extra.join('、')+')';
+        }
         $('btDmg').textContent=dmgText;
       }
-
-      // Phase 3: WIN/LOSE/DRAW表示 (0.8秒後)
+      // Phase 3: result (1.2s later)
       setTimeout(()=>{
-        $('btDicePhase').style.display='none';
-        $('btIntro').style.display='flex';
-        $('btVsText').style.display='none';
-        $('btResultBanner').style.display='flex';
+        $('btDicePhase').style.display='none';$('btIntro').style.display='flex';
+        $('btVsText').style.display='none';$('btResultBanner').style.display='flex';
         $('btResultTitle').style.animation='none';void $('btResultTitle').offsetWidth;$('btResultTitle').style.animation='bt-vs-pop .4s ease-out both';
         let resA='',resB='',clsA='',clsB='';
-        if(result==='a'){resA='WIN';clsA='win';resB='LOSE';clsB='lose';}
-        else if(result==='b'){resA='LOSE';clsA='lose';resB='WIN';clsB='win';}
+        const r=result||(aRoll>bRoll?'a':bRoll>aRoll?'b':'draw');
+        if(r==='a'){resA='WIN';clsA='win';resB='LOSE';clsB='lose';}
+        else if(r==='b'){resA='LOSE';clsA='lose';resB='WIN';clsB='win';}
         else{resA='DRAW';clsA='draw';resB='DRAW';clsB='draw';}
         $('btResA').textContent=resA;$('btResA').className='bt-result-label bt-result-left '+clsA;
         $('btResB').textContent=resB;$('btResB').className='bt-result-label bt-result-right '+clsB;
         $('btResA').style.animation='none';void $('btResA').offsetWidth;$('btResA').style.animation='bt-result-pop .4s ease-out both';
         $('btResB').style.animation='none';void $('btResB').offsetWidth;$('btResB').style.animation='bt-result-pop .4s ease-out both';
-
-        setTimeout(()=>{$('battleOverlay').style.display='none';battleAnimating=false;if(onDone)onDone();},2000);
+        setTimeout(()=>{
+          $('battleOverlay').style.display='none';
+          tokenAnim=null;
+          if(currentRoom) drawMap($('mapCanvas'),currentRoom,currentDisplayOverrides());
+          if(onDone)onDone();
+        },2000);
       },1200);
     }
-    rollAnim(cA,dieAFace,1600+Math.random()*200,null,fin);
-    rollAnim(cB,dieBFace,1600+Math.random()*200,null,fin);
+    rollAnim(cA,dAF,1600+Math.random()*200,null,fin);
+    rollAnim(cB,dBF,1600+Math.random()*200,null,fin);
   },1800);
 }
 
-socket.on('battleRolled',(data)=>{
-  showBattleAnim(data,()=>{
-    tryShowTurnStart();tryShowLevelUp();
-    if(diceQueue.length>0 && !diceProcessing) processNextDice();
-  });
-});
+function showEventBanner(text){
+  sfxEvent();$('eventBannerText').textContent=text;$('eventBanner').style.display='block';
+  setTimeout(()=>{$('eventBanner').style.display='none';},2200);
+}
+
+function showAbilityActivation(name,onDone,setImage){
+  const img=$('aaImg');
+  if(setImage){
+    img.src='/img/sets/'+setImage+'.png';
+    img.style.display='block';
+  } else {
+    img.style.display='none';
+  }
+  $('aaText').textContent='「'+name+'」発動！';
+  $('abilityActivationOverlay').style.display='flex';
+  setTimeout(()=>{
+    $('abilityActivationOverlay').style.display='none';
+    if(onDone)onDone();
+  },1600);
+}
+
 </script>
 </body>
 </html>
