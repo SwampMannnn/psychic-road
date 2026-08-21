@@ -615,6 +615,93 @@ button.ability-glow{animation:abglow 1.2s ease-in-out infinite alternate;border-
 .battle-rt{font-family:var(--fd);font-size:1em;color:var(--gold);min-height:1.2em;}
 /* ターン開始バナー */
 /* 自分のターン開始時の中央メッセージ */
+/* ===== C: 迫力の強化 ===== */
+/* 画面全体の揺れ */
+@keyframes shake-sm{0%,100%{transform:translate(0,0);}20%{transform:translate(-4px,2px);}40%{transform:translate(4px,-2px);}60%{transform:translate(-3px,-2px);}80%{transform:translate(3px,2px);}}
+@keyframes shake-lg{0%,100%{transform:translate(0,0) rotate(0);}15%{transform:translate(-9px,4px) rotate(-.5deg);}30%{transform:translate(9px,-5px) rotate(.5deg);}45%{transform:translate(-7px,-4px) rotate(-.4deg);}60%{transform:translate(7px,5px) rotate(.4deg);}80%{transform:translate(-4px,2px) rotate(-.2deg);}}
+body.shake-sm{animation:shake-sm .34s ease-out;}
+body.shake-lg{animation:shake-lg .6s ease-out;}
+/* 勝利時の閃光 */
+#flashFx{position:fixed;inset:0;z-index:190;display:none;pointer-events:none;}
+#flashFx .fx-white{position:absolute;inset:0;background:#fff;opacity:0;animation:fx-white .5s ease-out both;}
+@keyframes fx-white{0%{opacity:0;}8%{opacity:.9;}100%{opacity:0;}}
+#flashFx .fx-slash{position:absolute;top:50%;left:-20%;width:140%;height:8px;margin-top:-4px;
+  background:linear-gradient(90deg,transparent,#fff,rgba(242,183,5,.9),#fff,transparent);
+  filter:blur(1px);transform:rotate(-14deg) scaleX(0);animation:fx-slash .55s cubic-bezier(.2,.9,.3,1) both;}
+@keyframes fx-slash{0%{transform:rotate(-14deg) scaleX(0);opacity:0;}25%{opacity:1;}45%{transform:rotate(-14deg) scaleX(1);opacity:1;}100%{transform:rotate(-14deg) scaleX(1);opacity:0;}}
+/* 大ダメージ時の赤い縁 */
+#dangerVig{position:fixed;inset:0;z-index:88;display:none;pointer-events:none;
+  box-shadow:inset 0 0 90px 26px rgba(239,69,118,.75),inset 0 0 200px 60px rgba(160,10,50,.4);}
+#dangerVig.on{display:block;animation:dv-pulse 1.15s ease-out 2;}
+@keyframes dv-pulse{0%{opacity:0;}18%{opacity:1;}100%{opacity:0;}}
+/* レベルアップの光の柱 */
+#pillarFx{position:fixed;inset:0;z-index:96;display:none;align-items:center;justify-content:center;pointer-events:none;}
+#pillarFx .pl-beam{position:absolute;left:50%;top:0;bottom:0;width:180px;margin-left:-90px;
+  background:linear-gradient(180deg,rgba(255,236,150,0),rgba(255,222,110,.55) 25%,rgba(242,183,5,.75) 55%,rgba(255,236,150,.25) 100%);
+  filter:blur(2px);transform-origin:50% 100%;animation:pl-beam 2.4s cubic-bezier(.2,.9,.3,1) both;}
+@keyframes pl-beam{0%{opacity:0;transform:scaleX(.12) scaleY(.2);}
+  18%{opacity:1;transform:scaleX(1) scaleY(1);}
+  70%{opacity:1;transform:scaleX(1) scaleY(1);}
+  100%{opacity:0;transform:scaleX(.7) scaleY(1);}}
+#pillarFx .pl-core{position:absolute;left:50%;top:0;bottom:0;width:44px;margin-left:-22px;
+  background:linear-gradient(180deg,rgba(255,255,255,0),rgba(255,255,255,.9) 45%,rgba(255,246,200,.6) 100%);
+  filter:blur(1px);animation:pl-beam 2.4s cubic-bezier(.2,.9,.3,1) .05s both;}
+#pillarFx .pl-ring{position:absolute;left:50%;top:50%;width:60px;height:60px;margin:-30px 0 0 -30px;border-radius:50%;
+  border:3px solid rgba(255,222,110,.9);opacity:0;}
+#pillarFx .pl-ring.a{animation:pl-ring 1.7s cubic-bezier(.15,.6,.3,1) .25s both;}
+#pillarFx .pl-ring.b{animation:pl-ring 1.7s cubic-bezier(.15,.6,.3,1) .55s both;}
+@keyframes pl-ring{0%{opacity:.95;transform:scale(.3);}100%{opacity:0;transform:scale(14);}}
+#pillarFx .pl-text{position:relative;font-family:var(--fd);font-size:2em;font-weight:900;color:#fff6c8;
+  letter-spacing:.2em;white-space:nowrap;text-shadow:0 0 30px rgba(255,210,60,1),0 3px 0 #6a4a00,0 4px 20px rgba(0,0,0,.9);
+  animation:pl-text 2.4s cubic-bezier(.2,.9,.3,1) .2s both;}
+@keyframes pl-text{0%{opacity:0;transform:translateY(26px) scale(.85);}
+  22%{opacity:1;transform:translateY(0) scale(1);}
+  74%{opacity:1;}100%{opacity:0;transform:translateY(-16px) scale(1.04);}}
+/* 属性別エフェクト（超能力発動時に重ねる粒子） */
+#elemFx{position:fixed;inset:0;z-index:94;display:none;pointer-events:none;overflow:hidden;}
+.efx{position:absolute;pointer-events:none;}
+/* 炎: 上へ立ち上る火花 */
+@keyframes efx-fire{0%{opacity:0;transform:translateY(0) scale(.5) rotate(0);}10%{opacity:1;}100%{opacity:0;transform:translateY(-340px) scale(1.5) rotate(var(--rot,90deg));}}
+/* 炎の強化演出: 画面下からの業火・熱波・爆炎 */
+@keyframes fire-wall{0%{opacity:0;transform:translateY(60%) scaleY(.3);}
+  18%{opacity:1;transform:translateY(0) scaleY(1);}
+  62%{opacity:.9;transform:translateY(0) scaleY(1.06);}
+  100%{opacity:0;transform:translateY(-12%) scaleY(1.15);}}
+@keyframes fire-burst{0%{opacity:0;transform:scale(.2);}
+  16%{opacity:1;transform:scale(1.15);}
+  40%{opacity:.85;transform:scale(1);}
+  100%{opacity:0;transform:scale(2.3);}}
+@keyframes fire-heat{0%{opacity:0;}
+  20%{opacity:.85;}
+  100%{opacity:0;}}
+@keyframes fire-ember{0%{opacity:0;transform:translate(0,0) scale(.4);}
+  14%{opacity:1;}
+  100%{opacity:0;transform:translate(var(--ex,0),var(--ey,-260px)) scale(1.1);}}
+/* 風: 横へ流れる旋風 */
+@keyframes efx-wind{0%{opacity:0;transform:translateX(0) scaleX(.4);}14%{opacity:1;}100%{opacity:0;transform:translateX(420px) scaleX(1.9);}}
+/* 精神: 内へ収束するリング */
+@keyframes efx-mind{0%{opacity:0;transform:scale(2.4);}25%{opacity:1;}100%{opacity:0;transform:scale(.2);}}
+/* 時間: 回転する時計光 */
+@keyframes efx-time{0%{opacity:0;transform:rotate(0) scale(.4);}20%{opacity:1;}100%{opacity:0;transform:rotate(320deg) scale(1.7);}}
+/* 模倣: 分身して散る四角 */
+@keyframes efx-imit{0%{opacity:0;transform:translate(0,0) rotate(0) scale(.5);}18%{opacity:1;}100%{opacity:0;transform:translate(var(--dx),var(--dy)) rotate(220deg) scale(1.1);}}
+/* 祈祷: 舞い降りる光 */
+@keyframes efx-pray{0%{opacity:0;transform:translateY(-180px) scale(.6);}16%{opacity:1;}100%{opacity:0;transform:translateY(120px) scale(1.05);}}
+/* D: サイコロボタンの溜め演出 */
+button.charging{animation:btn-charge .62s ease-in both;position:relative;}
+@keyframes btn-charge{
+  0%{transform:scale(1);box-shadow:0 2px 10px rgba(0,0,0,.45);filter:brightness(1);}
+  70%{transform:scale(.94);box-shadow:0 0 26px rgba(45,212,191,.85),inset 0 0 18px rgba(255,255,255,.35);filter:brightness(1.45);}
+  100%{transform:scale(1.06);box-shadow:0 0 40px rgba(45,212,191,1);filter:brightness(1.8);}
+}
+button.charging::after{content:'';position:absolute;inset:-4px;border-radius:inherit;pointer-events:none;
+  border:2px solid rgba(45,212,191,.9);animation:btn-charge-ring .62s ease-in both;}
+@keyframes btn-charge-ring{0%{opacity:0;transform:scale(1.35);}70%{opacity:1;transform:scale(1);}100%{opacity:0;transform:scale(.9);}}
+/* D: バナーの登場を派手にする */
+#turnBanner .tb-inner{animation:tb-slide-x .5s cubic-bezier(.2,.9,.3,1) both !important;}
+@keyframes tb-slide-x{0%{opacity:0;transform:translateY(-100%);}60%{opacity:1;transform:translateY(6%);}100%{opacity:1;transform:translateY(0);}}
+#eventBanner .ev-inner{animation:ev-pop-x .45s cubic-bezier(.2,.9,.3,1) both !important;}
+@keyframes ev-pop-x{0%{opacity:0;transform:translateY(24px) scale(.9);}60%{opacity:1;transform:translateY(-4px) scale(1.03);}100%{opacity:1;transform:translateY(0) scale(1);}}
 #myTurnBanner{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:95;pointer-events:none;}
 #myTurnBanner .mtb-glow{position:absolute;inset:0;background:radial-gradient(ellipse 60% 34% at 50% 50%,rgba(242,183,5,.22),transparent 70%);animation:mtb-glow 2.2s ease-out both;}
 @keyframes mtb-glow{0%{opacity:0;}22%{opacity:1;}70%{opacity:1;}100%{opacity:0;}}
@@ -837,6 +924,7 @@ button.ability-glow{animation:abglow 1.2s ease-in-out infinite alternate;border-
       <div class="game-header">
         <h2><span id="mapLabel" style="color:var(--gold);"></span>　ラウンド <span id="roundLabel"></span></h2>
         <div class="next-turn" id="nextTurnBox"><span class="nt-label">NEXT</span><span class="nt-name" id="nextTurnName"></span></div>
+        <button id="bgmBtn" style="padding:5px 11px;font-size:.7em;margin:0;">♪ BGM OFF</button>
       </div>
 
       <div class="col-left" id="colLeft"></div>
@@ -872,6 +960,15 @@ button.ability-glow{animation:abglow 1.2s ease-in-out infinite alternate;border-
 </div>
 
 <div id="abilityPanel"><div class="ap-inner" id="abilityPanelInner"></div></div>
+
+<div id="flashFx"><div class="fx-white"></div><div class="fx-slash"></div></div>
+<div id="dangerVig"></div>
+<div id="elemFx"></div>
+<div id="pillarFx">
+  <div class="pl-beam"></div><div class="pl-core"></div>
+  <div class="pl-ring a"></div><div class="pl-ring b"></div>
+  <div class="pl-text" id="pillarText"></div>
+</div>
 
 <!-- turn banner -->
 <div id="turnBanner"><div class="tb-inner" id="turnBannerText"></div></div>
@@ -999,6 +1096,101 @@ function sfxVictory(){
   try{const ctx=getAudio();[523,659,784,1047].forEach((f,i)=>{const o=ctx.createOscillator();const g=ctx.createGain();
   o.type='triangle';o.frequency.value=f;g.gain.setValueAtTime(0.15,ctx.currentTime+i*0.15);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+i*0.15+0.4);
   o.connect(g);g.connect(ctx.destination);o.start(ctx.currentTime+i*0.15);o.stop(ctx.currentTime+i*0.15+0.4);});}catch(e){}
+}
+/* ===== D: ホバー音 ===== */
+let lastHoverAt=0;
+/* ===== D: クリック音（ゲーム内で使用している選択音と統一） ===== */
+function sfxClick(){ playFile('/sfx/select_pick.mp3',SFX_VOL); }
+// すべてのボタン類にクリック音を付ける（波紋エフェクトと同じ委譲方式）
+document.addEventListener('pointerdown',e=>{
+  const b=e.target.closest('button, .hm-btn, .ab-card, .gd-card, .car-edge, .lb-slot button');
+  if(!b||b.disabled) return;
+  sfxClick();
+});
+
+function sfxHover(){
+  const now=Date.now();
+  if(now-lastHoverAt<70) return; // 連続再生を抑える
+  lastHoverAt=now;
+  try{const ctx=getAudio();const o=ctx.createOscillator();const g=ctx.createGain();
+  o.type='sine';o.frequency.value=880;
+  g.gain.setValueAtTime(0.045,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.06);
+  o.connect(g);g.connect(ctx.destination);o.start();o.stop(ctx.currentTime+0.06);}catch(e){}
+}
+// ボタン類にホバー音を付ける（動的に生成される要素にも効くよう委譲で処理）
+document.addEventListener('pointerover',e=>{
+  const b=e.target.closest('button, .hm-btn, .ab-card, .gd-card, .car-edge');
+  if(!b||b.disabled) return;
+  if(b.dataset.hovered==='1') return;
+  b.dataset.hovered='1';
+  sfxHover();
+});
+document.addEventListener('pointerout',e=>{
+  const b=e.target.closest('button, .hm-btn, .ab-card, .gd-card, .car-edge');
+  if(b) b.dataset.hovered='';
+});
+/* ===== D: ダイスの溜め音 ===== */
+function sfxCharge(ms){
+  try{const ctx=getAudio();const o=ctx.createOscillator();const g=ctx.createGain();
+  const dur=(ms||700)/1000;
+  o.type='sawtooth';
+  o.frequency.setValueAtTime(110,ctx.currentTime);
+  o.frequency.exponentialRampToValueAtTime(760,ctx.currentTime+dur);
+  g.gain.setValueAtTime(0.0001,ctx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.10,ctx.currentTime+dur*0.85);
+  g.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+dur);
+  o.connect(g);g.connect(ctx.destination);o.start();o.stop(ctx.currentTime+dur);}catch(e){}
+}
+/* ===== E: BGM ===== */
+let bgmOsc=null,bgmGain=null,bgmTimer=null,bgmOn=false;
+const BGM_VOL=0.055;
+// 簡素なアルペジオを繰り返す環境音風BGM（音源ファイル不要）
+function startBgm(){
+  if(bgmOn) return;
+  try{
+    const ctx=getAudio();
+    bgmOn=true;
+    bgmGain=ctx.createGain();
+    bgmGain.gain.value=BGM_VOL;
+    bgmGain.connect(ctx.destination);
+    const scale=[196.00,233.08,261.63,293.66,349.23,392.00,466.16,523.25];
+    let step=0;
+    const tick=()=>{
+      if(!bgmOn) return;
+      const t=ctx.currentTime;
+      // 低音のパッド
+      if(step%8===0){
+        const p=ctx.createOscillator();const pg=ctx.createGain();
+        p.type='sine';p.frequency.value=scale[0]/2;
+        pg.gain.setValueAtTime(0.0001,t);
+        pg.gain.exponentialRampToValueAtTime(0.5,t+0.6);
+        pg.gain.exponentialRampToValueAtTime(0.0001,t+3.4);
+        p.connect(pg);pg.connect(bgmGain);p.start(t);p.stop(t+3.5);
+      }
+      // アルペジオ
+      const idx=[0,2,4,6,4,2,3,5][step%8];
+      const o=ctx.createOscillator();const g=ctx.createGain();
+      o.type='triangle';o.frequency.value=scale[idx];
+      g.gain.setValueAtTime(0.0001,t);
+      g.gain.exponentialRampToValueAtTime(0.28,t+0.05);
+      g.gain.exponentialRampToValueAtTime(0.0001,t+0.9);
+      o.connect(g);g.connect(bgmGain);o.start(t);o.stop(t+0.95);
+      step++;
+    };
+    tick();
+    bgmTimer=setInterval(tick,620);
+  }catch(e){bgmOn=false;}
+}
+function stopBgm(){
+  bgmOn=false;
+  clearInterval(bgmTimer);bgmTimer=null;
+  if(bgmGain){try{bgmGain.gain.exponentialRampToValueAtTime(0.0001,getAudio().currentTime+0.6);}catch(e){}}
+  setTimeout(()=>{if(bgmGain){try{bgmGain.disconnect();}catch(e){}bgmGain=null;}},800);
+}
+function toggleBgm(){
+  if(bgmOn){stopBgm();}else{startBgm();}
+  const b=$('bgmBtn');
+  if(b) b.textContent=bgmOn?'♪ BGM ON':'♪ BGM OFF';
 }
 
 /* ========== 3D DICE ========== */
@@ -1433,6 +1625,124 @@ function showPathBattleChoice(pos, opponents, outerDone){
 }
 
 // 超能力発動アニメーション（短いバナー）は下部でsetImage対応版を定義
+/* ===== C: 迫力演出のヘルパー ===== */
+function shakeScreen(big){
+  const cls=big?'shake-lg':'shake-sm';
+  document.body.classList.remove('shake-sm','shake-lg');
+  void document.body.offsetWidth;
+  document.body.classList.add(cls);
+  setTimeout(()=>document.body.classList.remove(cls),big?620:360);
+}
+function flashScreen(){
+  const el=$('flashFx');
+  el.style.display='none';void el.offsetWidth;
+  el.style.display='block';
+  setTimeout(()=>{el.style.display='none';},600);
+}
+function dangerVignette(){
+  const el=$('dangerVig');
+  el.classList.remove('on');void el.offsetWidth;
+  el.classList.add('on');
+  setTimeout(()=>el.classList.remove('on'),2400);
+}
+// レベルアップ時の光の柱
+function showLevelPillar(text){
+  $('pillarText').textContent=text;
+  const el=$('pillarFx');
+  el.style.display='none';void el.offsetWidth;
+  el.style.display='flex';
+  setTimeout(()=>{el.style.display='none';},2500);
+}
+// 超能力セットごとの属性エフェクト
+const ELEM_STYLE={
+  fire:{anim:'efx-fire',color:'#ff9a3c',glow:'rgba(255,120,30,.9)',n:26,dur:[1.1,1.7]},
+  wind:{anim:'efx-wind',color:'#8ef0e0',glow:'rgba(90,230,210,.85)',n:20,dur:[1.0,1.5]},
+  mind:{anim:'efx-mind',color:'#c39bff',glow:'rgba(160,110,255,.9)',n:14,dur:[1.1,1.6]},
+  time:{anim:'efx-time',color:'#9ec8ff',glow:'rgba(120,170,255,.9)',n:16,dur:[1.2,1.8]},
+  imitation:{anim:'efx-imit',color:'#ff9ed4',glow:'rgba(255,120,200,.85)',n:20,dur:[1.0,1.6]},
+  prayer:{anim:'efx-pray',color:'#ffe9a8',glow:'rgba(255,220,120,.9)',n:22,dur:[1.2,1.8]},
+};
+function playElementFx(setId){
+  const st=ELEM_STYLE[setId];
+  if(!st) return;
+  const box=$('elemFx');
+  box.innerHTML='';
+  box.style.display='block';
+
+  // 炎だけは特別に、画面全体を焼くような重ねがけの演出を行う
+  if(setId==='fire'){
+    // ① 中央の爆炎
+    const burst=document.createElement('div');
+    burst.style.cssText='position:absolute;left:50%;top:50%;width:520px;height:520px;margin:-260px 0 0 -260px;border-radius:50%;'
+      +'background:radial-gradient(circle,rgba(255,250,220,.95) 0%,rgba(255,190,60,.85) 22%,rgba(255,110,20,.7) 45%,rgba(190,30,10,.35) 70%,transparent 100%);'
+      +'filter:blur(6px);animation:fire-burst 1.5s cubic-bezier(.2,.85,.35,1) both;';
+    box.appendChild(burst);
+    // ② 熱で画面全体が赤らむ
+    const heat=document.createElement('div');
+    heat.style.cssText='position:absolute;inset:0;'
+      +'background:radial-gradient(ellipse at 50% 80%,rgba(255,110,20,.5),rgba(150,20,0,.25) 45%,transparent 78%);'
+      +'animation:fire-heat 1.8s ease-out both;';
+    box.appendChild(heat);
+    // ③ 画面下から立ち上る業火の壁
+    const wall=document.createElement('div');
+    wall.style.cssText='position:absolute;left:0;right:0;bottom:0;height:56%;transform-origin:50% 100%;'
+      +'background:linear-gradient(0deg,rgba(255,220,120,.9) 0%,rgba(255,140,30,.75) 30%,rgba(220,50,10,.45) 62%,transparent 100%);'
+      +'filter:blur(8px);animation:fire-wall 1.9s cubic-bezier(.2,.85,.35,1) both;';
+    box.appendChild(wall);
+    // ④ 舞い上がる大量の火の粉
+    for(let i=0;i<46;i++){
+      const e=document.createElement('div');
+      const s=3+Math.random()*7;
+      const dur=(1.1+Math.random()*1.0).toFixed(2);
+      const delay=(Math.random()*0.55).toFixed(2);
+      e.style.setProperty('--ex',(Math.random()*220-110)+'px');
+      e.style.setProperty('--ey',(-200-Math.random()*260)+'px');
+      e.style.cssText+='position:absolute;left:'+(Math.random()*100)+'%;bottom:'+(-10+Math.random()*22)+'%;'
+        +'width:'+s+'px;height:'+(s*1.6)+'px;border-radius:50% 50% 50% 50%/62% 62% 38% 38%;'
+        +'background:'+(Math.random()<0.35?'#fff0b8':'#ff8a2a')+';'
+        +'box-shadow:0 0 '+(10+s*2)+'px rgba(255,130,30,.95);'
+        +'animation:fire-ember '+dur+'s ease-out '+delay+'s both;';
+      box.appendChild(e);
+    }
+    // 熱波に合わせて軽く画面を揺らす
+    shakeScreen(false);
+    setTimeout(()=>{box.style.display='none';box.innerHTML='';},2750);
+    return;
+  }
+
+  for(let i=0;i<st.n;i++){
+    const d=document.createElement('div');
+    d.className='efx';
+    const dur=(st.dur[0]+Math.random()*(st.dur[1]-st.dur[0])).toFixed(2);
+    const delay=(Math.random()*0.5).toFixed(2);
+    if(setId==='fire'){
+      const s=3+Math.random()*5;
+      d.style.cssText='left:'+(Math.random()*100)+'%;bottom:-20px;width:'+s+'px;height:'+(s*1.7)+'px;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;background:'+st.color+';box-shadow:0 0 12px '+st.glow+';';
+    } else if(setId==='wind'){
+      d.style.cssText='left:-80px;top:'+(Math.random()*100)+'%;width:'+(40+Math.random()*90)+'px;height:2px;border-radius:99px;background:linear-gradient(90deg,transparent,'+st.color+',transparent);box-shadow:0 0 10px '+st.glow+';';
+    } else if(setId==='mind'){
+      const s=60+Math.random()*180;
+      d.style.cssText='left:50%;top:50%;width:'+s+'px;height:'+s+'px;margin:'+(-s/2)+'px 0 0 '+(-s/2)+'px;border-radius:50%;border:2px solid '+st.color+';box-shadow:0 0 16px '+st.glow+';';
+    } else if(setId==='time'){
+      const s=50+Math.random()*160;
+      d.style.cssText='left:'+(20+Math.random()*60)+'%;top:'+(20+Math.random()*60)+'%;width:'+s+'px;height:'+s+'px;margin:'+(-s/2)+'px 0 0 '+(-s/2)+'px;border-radius:50%;border:2px dashed '+st.color+';box-shadow:0 0 14px '+st.glow+';';
+    } else if(setId==='imitation'){
+      const s=6+Math.random()*10;
+      d.style.setProperty('--dx',(Math.random()*440-220)+'px');
+      d.style.setProperty('--dy',(Math.random()*440-220)+'px');
+      d.style.cssText+='left:50%;top:50%;width:'+s+'px;height:'+s+'px;background:'+st.color+';box-shadow:0 0 12px '+st.glow+';border-radius:2px;';
+    } else {
+      const s=3+Math.random()*4;
+      d.style.cssText='left:'+(Math.random()*100)+'%;top:'+(Math.random()*40)+'%;width:'+s+'px;height:'+s+'px;border-radius:50%;background:'+st.color+';box-shadow:0 0 14px '+st.glow+';';
+    }
+    d.style.animation=st.anim+' '+dur+'s ease-out '+delay+'s both';
+    box.appendChild(d);
+  }
+  setTimeout(()=>{box.style.display='none';box.innerHTML='';},2200);
+}
+
+function shakeScreenInit(){}
+
 /* ===== 盤面アニメーション基盤 =====
    canvasは静止画なので、常時再描画するループを回して脈動や炎を animate する */
 let boardT=0;              // 経過時間(ms)
@@ -1591,7 +1901,23 @@ $('copyRoomIdBtn').onclick=()=>{
 $('readyBtn').onclick=()=>socket.emit('toggleReady');
 $('startBtn').onclick=()=>socket.emit('startGame');
 $('addBotBtn').onclick=()=>{console.log('addBot clicked');socket.emit('addBot');};
-$('rollBtn').onclick=()=>{socket.emit('rollDice');};
+$('bgmBtn').onclick=()=>toggleBgm();
+// サイコロは短い溜めを挟んでから振る（押した手応えを出す）
+let rollCharging=false;
+$('rollBtn').onclick=()=>{
+  if(rollCharging) return;
+  rollCharging=true;
+  const b=$('rollBtn');
+  b.disabled=true;
+  b.classList.add('charging');
+  sfxCharge(620);
+  setTimeout(()=>{
+    b.classList.remove('charging');
+    b.disabled=false;
+    rollCharging=false;
+    socket.emit('rollDice');
+  },620);
+};
 $('tripleDiceBtn').onclick=()=>{socket.emit('activateTripleDice');socket.emit('rollDice');};
 $('restBtn').onclick=()=>socket.emit('rest');
 $('abilityBtn').onclick=()=>{
@@ -1654,7 +1980,7 @@ function renderLobby(r){
   $('addBotBtn').style.display=(isHost&&r.players.length<MAXP)?'':'none';
 }
 
-// ゴールに近い順の順位を右上に表示する
+// ゴールに近い順の順位を表示する
 function renderRankBoard(r){
   const box=$('rankBoard');
   const sorted=[...r.players].sort((a,b)=>{
@@ -1917,7 +2243,7 @@ function renderGame(r){
           +'<span class="ab-timing">'+timingLabel(pw.timing)+'</span>'+tags+'</div>'
           +'<div class="ab-desc">'+escHtml(pw.description)+'</div>';
         card.onclick=()=>{
-          sfxAbilityPick();sfxMagic();
+          sfxMagic();  // クリック音は共通ハンドラで再生済み
           $('abilityPanel').classList.remove('open');
           if(pw.requiresTarget){
             showTargetPicker(pw);
@@ -2536,9 +2862,11 @@ socket.on('turnStart',({playerId,playerName})=>{
 /* ---- levelUp ---- */
 socket.on('levelUp',({playerId,playerName,level})=>{
   queueAnim(done=>{
-    $('lvUpText').textContent=playerName+' Lv.'+level+'に到達！';
-    $('lvUpBanner').style.display='block';
-    setTimeout(()=>{$('lvUpBanner').style.display='none';done();},2500);
+    sfxVictory();
+    // 光の柱が立ち上る演出
+    showLevelPillar(playerName+'  Lv.'+level);
+    if(playerId===myId) shakeScreen(false);
+    setTimeout(()=>{done();},2500);
   });
 });
 
@@ -2567,6 +2895,8 @@ socket.on('hpChange',({playerId,playerName,amount})=>{
     if(playerId===myId){
       $('hpFlash').className='hp-effect-flash '+cls;
       $('hpFlash').style.animation='none';void $('hpFlash').offsetWidth;$('hpFlash').style.animation='hp-flash .4s ease-out both';
+      // 自分が大ダメージを受けたら赤い縁を明滅させ、画面も揺らす
+      if(isDmg&&Math.abs(amount)>=4){ dangerVignette(); shakeScreen(Math.abs(amount)>=6); }
     }
     $('hpEffectNum').className='hp-effect-num '+cls;
     $('hpEffectNum').textContent=playerName+' '+txt;
@@ -2985,6 +3315,11 @@ function showBattleAnim(data,onDone){
       if(bFixed) $('btBonusB').textContent='相手の能力で出目が固定された';
       else if(bBonus) $('btBonusB').textContent=(bRoleName||'')+'ボーナス '+(bBonus>0?'+':'')+bBonus;
       $('btRT').textContent=aRoll>bRoll?aName+' の勝利！':bRoll>aRoll?bName+' の勝利！':'引き分け';
+      // 決着時は閃光と画面の揺れで迫力を出す
+      if(result==='a'||result==='b'){
+        flashScreen();
+        shakeScreen((dmg||0)>=5);
+      }
       if(reflected){
         const loserName=result==='a'?bName:aName;
         $('btDmg').textContent=loserName+'はタイムカウンターでダメージを無効化し、'+reflectedToName+'に反射した！';
@@ -3037,6 +3372,9 @@ function showAbilityActivation(name,onDone,setImage){
   if(setImage){
     img.src='/img/sets/'+setImage+'.png';
     img.style.display='block';
+    // set_fire → fire のように属性IDを取り出してエフェクトを再生
+    const setId=String(setImage).replace(/^set_/,'');
+    playElementFx(setId);
   } else {
     img.style.display='none';
   }
