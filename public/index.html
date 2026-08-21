@@ -11,11 +11,256 @@
   --danger:#ef4576;--text:#ece7ff;--dim:#9a8fc4;
   --fd:'Shippori Mincho',serif;--fb:'Zen Kaku Gothic New',sans-serif;
 }
+/* ===== TITLE / HOME / LOADING / GUIDE ===== */
+#titleScreen{position:fixed;inset:0;z-index:400;display:flex;align-items:center;justify-content:center;background:#000;cursor:pointer;overflow:hidden;}
+/* ① 暗闇にロゴが浮かび上がり、ゆっくり消える */
+#titleScreen .ts-openlogo{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);max-width:min(62vw,520px);width:100%;
+  opacity:0;filter:drop-shadow(0 0 50px rgba(140,120,255,.85));
+  animation:ts-open-logo 5.4s ease-in-out .5s forwards;}
+@keyframes ts-open-logo{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.94);}
+  22%{opacity:1;transform:translate(-50%,-50%) scale(1);}
+  62%{opacity:1;transform:translate(-50%,-50%) scale(1.01);}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(1.03);}
+}
+/* ② 背景がゆっくりフェードイン（引き気味の画角から始める） */
+#titleScreen .ts-bg{position:absolute;inset:0;background-size:cover;background-position:center;
+  opacity:0;transform:scale(1.16);animation:ts-bg-in 7s ease-out 5.2s forwards;}
+@keyframes ts-bg-in{to{opacity:.9;transform:scale(1.02);}}
+#titleScreen .ts-veil{position:absolute;inset:0;opacity:0;animation:ts-veil-in 2.4s ease-out 5.2s forwards;
+  background:radial-gradient(circle at 50% 45%,transparent 30%,rgba(5,3,13,.5) 72%,rgba(5,3,13,.92) 100%);}
+@keyframes ts-veil-in{to{opacity:1;}}
+/* ③ PRESS TO START */
+#titleScreen .ts-press{position:absolute;left:50%;bottom:13%;transform:translateX(-50%);
+  font-family:var(--fd);font-size:1.08em;letter-spacing:.3em;color:#e6ddff;white-space:nowrap;
+  text-shadow:0 0 20px rgba(155,107,255,.9),0 2px 12px rgba(0,0,0,.8);
+  opacity:0;animation:ts-press-in 1.2s ease-out 8.2s forwards,ts-blink 2.6s ease-in-out 9.4s infinite;}
+@keyframes ts-press-in{to{opacity:1;}}
+@keyframes ts-blink{0%,100%{opacity:1;}50%{opacity:.3;}}
+/* 演出をスキップした状態 */
+#titleScreen.skip .ts-openlogo{animation:none;opacity:0;}
+#titleScreen.skip .ts-bg{animation:none;opacity:.9;transform:scale(1.02);}
+#titleScreen.skip .ts-veil{animation:none;opacity:1;}
+#titleScreen.skip .ts-press{animation:ts-press-in .4s ease-out forwards,ts-blink 2.6s ease-in-out .6s infinite;}
+
+#homeScreen{position:fixed;inset:0;z-index:300;display:none;align-items:center;justify-content:center;background:#07040f;overflow:hidden;}
+#homeScreen .hm-bg{position:absolute;inset:0;background-size:cover;background-position:center;opacity:.22;filter:saturate(.8) blur(2px);animation:hm-drift 40s ease-in-out infinite alternate;}
+@keyframes hm-drift{from{transform:scale(1.06) translateX(-1%);}to{transform:scale(1.12) translateX(1%);}}
+/* ヴェールは立ち絵より下に敷き、立ち絵が隠れないようにする */
+#homeScreen .hm-veil{position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(7,4,15,.55),rgba(7,4,15,.8));}
+/* 左右のキャラクター立ち絵（背景との境目はマスクでぼかす） */
+#homeScreen .hm-char{position:absolute;top:0;bottom:0;width:38%;z-index:2;background-size:cover;background-position:center top;
+  opacity:0;transition:opacity 1.4s ease;pointer-events:none;}
+#homeScreen .hm-char.on{opacity:.9;}
+#homeScreen .hm-char.left{left:0;
+  -webkit-mask-image:linear-gradient(90deg,rgba(0,0,0,1) 0%,rgba(0,0,0,.95) 34%,rgba(0,0,0,.4) 72%,rgba(0,0,0,0) 100%);
+  mask-image:linear-gradient(90deg,rgba(0,0,0,1) 0%,rgba(0,0,0,.95) 34%,rgba(0,0,0,.4) 72%,rgba(0,0,0,0) 100%);}
+#homeScreen .hm-char.right{right:0;
+  -webkit-mask-image:linear-gradient(270deg,rgba(0,0,0,1) 0%,rgba(0,0,0,.95) 34%,rgba(0,0,0,.4) 72%,rgba(0,0,0,0) 100%);
+  mask-image:linear-gradient(270deg,rgba(0,0,0,1) 0%,rgba(0,0,0,.95) 34%,rgba(0,0,0,.4) 72%,rgba(0,0,0,0) 100%);}
+/* メニュー背後だけを暗く落とし、中央の可読性を確保する */
+#homeScreen .hm-focus{position:absolute;inset:0;z-index:3;pointer-events:none;
+  background:radial-gradient(ellipse 46% 78% at 50% 50%,rgba(7,4,15,.92) 30%,rgba(7,4,15,.6) 62%,transparent 100%);}
+#homeScreen .hm-inner{position:relative;z-index:4;width:min(92vw,430px);text-align:center;}
+#homeScreen .hm-logo{width:min(74vw,360px);margin-bottom:30px;filter:drop-shadow(0 0 30px rgba(140,120,255,.75));}
+.hm-btn{display:block;width:100%;margin:0 0 13px;padding:16px 18px;font-family:var(--fd);font-size:1.08em;font-weight:700;letter-spacing:.1em;color:var(--text);
+  background:linear-gradient(180deg,rgba(72,52,150,.92),rgba(34,23,80,.94));border:1px solid rgba(140,110,255,.45);border-radius:12px;cursor:pointer;
+  position:relative;overflow:hidden;
+  box-shadow:0 4px 20px rgba(0,0,0,.55),inset 0 1px 0 rgba(190,170,255,.2);
+  transition:transform .16s cubic-bezier(.2,.9,.3,1),box-shadow .16s ease,border-color .16s ease,filter .16s ease;}
+.hm-btn::before{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(120deg,transparent 32%,rgba(200,180,255,.3) 50%,transparent 68%);
+  transform:translateX(-120%);transition:transform .6s ease;}
+.hm-btn:hover::before{transform:translateX(120%);}
+.hm-btn:hover{transform:translateY(-3px);border-color:rgba(180,155,255,.95);filter:brightness(1.12);
+  box-shadow:0 10px 34px rgba(130,90,255,.5),inset 0 1px 0 rgba(215,200,255,.32);}
+.hm-btn:active{transform:translateY(1px) scale(.98);box-shadow:0 2px 10px rgba(130,90,255,.55),inset 0 3px 10px rgba(0,0,0,.45);}
+.hm-btn .hm-sub{display:block;font-family:var(--fb);font-size:.62em;font-weight:400;color:#b9aee0;letter-spacing:.03em;margin-top:4px;}
+.hm-btn.primary{background:linear-gradient(180deg,rgba(126,74,224,.95),rgba(66,32,148,.96));border-color:rgba(175,140,255,.7);}
+.hm-btn.back{background:linear-gradient(180deg,rgba(48,38,86,.9),rgba(26,20,54,.92));font-size:.94em;}
+/* サブメニュー（ゲームを始める→作成/参加）の出入り */
+/* サブメニュー: 2枚を常に同じ位置に重ね、切替時にレイアウトが動かないようにする */
+.hm-menus{position:relative;}
+.hm-menu{transition:opacity .26s ease,transform .26s ease;}
+.hm-menu.hide{opacity:0;transform:translateY(-6px);pointer-events:none;
+  position:absolute;top:0;left:0;right:0;}
+.hm-menu.show{opacity:1;transform:translateY(0);position:relative;}
+
+/* ===== 超能力覚醒前: 暗闇に雫が落ちる演出 ===== */
+#awakenScreen{position:fixed;inset:0;z-index:360;display:none;align-items:center;justify-content:center;background:#000;overflow:hidden;}
+#awakenScreen .aw-stage{position:relative;width:100%;height:100%;}
+/* 落ちてくる雫 */
+#awakenScreen .aw-drop{position:absolute;left:50%;top:-14%;width:13px;height:19px;margin-left:-6.5px;
+  background:radial-gradient(circle at 38% 32%,#f2f0ff,#b9a6ff 42%,#6c4ad6 78%,#33207a 100%);
+  border-radius:50% 50% 50% 50% / 62% 62% 38% 38%;
+  transform:rotate(180deg);
+  filter:drop-shadow(0 0 12px rgba(160,130,255,.95));
+  animation:aw-fall 1.9s cubic-bezier(.6,.02,.9,.42) .5s forwards;}
+@keyframes aw-fall{
+  0%{top:-14%;opacity:0;transform:rotate(180deg) scaleY(.7);}
+  12%{opacity:1;}
+  85%{transform:rotate(180deg) scaleY(1.35);}
+  100%{top:50%;opacity:1;transform:rotate(180deg) scaleY(1.1);}
+}
+/* 着水点の閃光 */
+#awakenScreen .aw-flash{position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;
+  background:radial-gradient(circle,#fff,rgba(190,170,255,.9) 40%,transparent 72%);
+  opacity:0;animation:aw-flash .5s ease-out 2.35s forwards;}
+@keyframes aw-flash{0%{opacity:0;transform:scale(.4);}30%{opacity:1;transform:scale(9);}100%{opacity:0;transform:scale(20);}}
+/* 広がる波紋 */
+#awakenScreen .aw-ring{position:absolute;left:50%;top:50%;width:24px;height:24px;margin:-12px 0 0 -12px;border-radius:50%;
+  border:2px solid rgba(170,140,255,.85);opacity:0;}
+#awakenScreen .aw-ring.r1{animation:aw-ring 2.4s cubic-bezier(.15,.6,.3,1) 2.4s forwards;}
+#awakenScreen .aw-ring.r2{animation:aw-ring 2.4s cubic-bezier(.15,.6,.3,1) 2.75s forwards;}
+#awakenScreen .aw-ring.r3{animation:aw-ring 2.4s cubic-bezier(.15,.6,.3,1) 3.1s forwards;}
+@keyframes aw-ring{0%{opacity:.9;transform:scale(.3);border-width:2.5px;}100%{opacity:0;transform:scale(46);border-width:.4px;}}
+/* 中央から満ちていく光 */
+#awakenScreen .aw-glow{position:absolute;inset:0;opacity:0;
+  background:radial-gradient(circle at 50% 50%,rgba(150,120,255,.55),rgba(90,60,190,.2) 32%,transparent 62%);
+  animation:aw-glow 3.4s ease-out 2.45s forwards;}
+@keyframes aw-glow{0%{opacity:0;transform:scale(.4);}35%{opacity:1;}100%{opacity:0;transform:scale(2.1);}}
+/* 立ち上る粒子 */
+#awakenScreen .aw-mote{position:absolute;bottom:38%;width:3px;height:3px;border-radius:50%;background:rgba(200,180,255,.95);
+  box-shadow:0 0 8px rgba(160,130,255,.9);opacity:0;}
+@keyframes aw-mote{0%{opacity:0;transform:translateY(0) scale(.5);}25%{opacity:1;}100%{opacity:0;transform:translateY(-260px) scale(1.15);}}
+/* 覚醒テキスト */
+#loadingScreen{position:fixed;inset:0;z-index:350;display:none;align-items:center;justify-content:center;background:#05030d;overflow:hidden;}
+/* 背景いっぱいにぼかした同じ画像を敷き、その上に全体が見えるサイズで重ねる */
+#loadingScreen .ld-blur{position:absolute;inset:-6%;background-size:cover;background-position:center;
+  filter:blur(28px) saturate(.8) brightness(.5);opacity:0;transition:opacity .9s ease;}
+#loadingScreen .ld-blur.on{opacity:1;}
+#loadingScreen .ld-bg{position:absolute;inset:0;background-size:contain;background-position:center;background-repeat:no-repeat;
+  opacity:0;transition:opacity .9s ease;animation:ld-zoom 14s ease-out forwards;
+  -webkit-mask-image:radial-gradient(ellipse 72% 72% at 50% 45%,#000 58%,transparent 100%);
+  mask-image:radial-gradient(ellipse 72% 72% at 50% 45%,#000 58%,transparent 100%);}
+#loadingScreen .ld-bg.on{opacity:.92;}
+@keyframes ld-zoom{from{transform:scale(1);}to{transform:scale(1.06);}}
+#loadingScreen .ld-veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(5,3,13,.28) 40%,rgba(5,3,13,.86) 78%,rgba(5,3,13,.97) 100%);}
+#loadingScreen .ld-inner{position:absolute;left:50%;bottom:8%;transform:translateX(-50%);text-align:center;width:min(88vw,540px);}
+#loadingScreen .ld-cap{font-family:var(--fd);font-size:1.05em;color:var(--gold);letter-spacing:.16em;margin-bottom:9px;min-height:1.3em;text-shadow:0 2px 12px rgba(0,0,0,.9);}
+#loadingScreen .ld-tip{font-size:.8em;color:#c3b8e6;line-height:1.75;min-height:3.4em;margin-bottom:18px;padding:0 10px;text-shadow:0 2px 10px rgba(0,0,0,.9);}
+#loadingScreen .ld-barbg{height:5px;background:rgba(255,255,255,.1);border-radius:99px;overflow:hidden;}
+#loadingScreen .ld-bar{height:100%;width:0%;background:linear-gradient(90deg,var(--vio),var(--teal));border-radius:99px;transition:width .35s ease;box-shadow:0 0 14px rgba(155,107,255,.7);}
+#loadingScreen .ld-txt{margin-top:10px;font-family:var(--fd);letter-spacing:.24em;color:#d8cfff;font-size:.85em;animation:ts-blink 1.8s ease-in-out infinite;}
+
+#guideScreen{position:fixed;inset:0;z-index:320;display:none;flex-direction:column;background:#0a0618;}
+#guideScreen .gd-head{flex-shrink:0;display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--panel-line);background:rgba(16,10,36,.96);}
+#guideScreen .gd-head h2{margin:0;font-size:1.1em;color:var(--gold);}
+#guideScreen .gd-body{flex:1;display:flex;min-height:0;}
+#guideScreen .gd-nav{width:186px;flex-shrink:0;border-right:1px solid var(--panel-line);overflow-y:auto;padding:10px 8px;background:rgba(14,9,30,.7);}
+#guideScreen .gd-nav button{position:relative;display:block;width:100%;height:62px;text-align:left;margin:0 0 8px;padding:0 12px;
+  font-family:var(--fd);font-size:.92em;color:var(--dim);background:rgba(20,14,44,.6);
+  border:1px solid var(--panel-line);border-radius:10px;cursor:pointer;overflow:hidden;transition:all .18s ease;}
+/* 右側にその項目を象徴する画像を、顔が見える位置で配置 */
+#guideScreen .gd-nav button .gdn-img{position:absolute;top:0;right:0;bottom:0;width:64%;
+  background-size:cover;background-position:center 18%;opacity:.55;transition:opacity .18s ease;
+  -webkit-mask-image:linear-gradient(270deg,rgba(0,0,0,1) 0%,rgba(0,0,0,.85) 42%,rgba(0,0,0,0) 100%);
+  mask-image:linear-gradient(270deg,rgba(0,0,0,1) 0%,rgba(0,0,0,.85) 42%,rgba(0,0,0,0) 100%);}
+#guideScreen .gd-nav button .gdn-label{position:relative;z-index:2;text-shadow:0 2px 8px rgba(0,0,0,.95);}
+#guideScreen .gd-nav button:hover{color:var(--text);border-color:rgba(155,107,255,.6);}
+#guideScreen .gd-nav button:hover .gdn-img{opacity:.75;}
+#guideScreen .gd-nav button.active{color:var(--text);border-color:var(--vio);box-shadow:0 0 18px rgba(155,107,255,.28);}
+#guideScreen .gd-nav button.active .gdn-img{opacity:.85;}
+#guideScreen .gd-content{flex:1;overflow-y:auto;padding:18px 22px;min-width:0;}
+.gd-sec-title{font-family:var(--fd);font-size:1.3em;color:var(--gold);margin:0 0 4px;}
+.gd-sec-lead{font-size:.84em;color:var(--dim);line-height:1.8;margin-bottom:16px;}
+.gd-card{display:flex;gap:14px;background:rgba(26,18,64,.55);border:1px solid var(--panel-line);border-radius:12px;padding:12px;margin-bottom:12px;cursor:pointer;
+  transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease;}
+.gd-card:hover{transform:translateY(-2px);border-color:rgba(155,107,255,.75);box-shadow:0 6px 22px rgba(120,80,255,.28);}
+.gd-card .gd-thumb{width:118px;height:132px;flex-shrink:0;border-radius:9px;overflow:hidden;position:relative;background:#0d0920;}
+.gd-card.wide .gd-thumb{width:180px;height:150px;}
+/* 背後に同じ画像をぼかして敷き、手前は全体が入るサイズで表示。境目はマスクで溶かす */
+.gd-card .gd-thumb .gd-thumb-blur{position:absolute;inset:-16%;background-size:cover;background-position:center;filter:blur(16px) brightness(.5) saturate(.85);}
+.gd-card .gd-thumb .gd-thumb-img{position:absolute;inset:0;background-size:contain;background-position:center;background-repeat:no-repeat;
+  -webkit-mask-image:radial-gradient(ellipse 84% 84% at 50% 50%,#000 66%,transparent 100%);
+  mask-image:radial-gradient(ellipse 84% 84% at 50% 50%,#000 66%,transparent 100%);}
+/* 詳細モーダル */
+#gdModal{position:fixed;inset:0;z-index:340;display:none;align-items:center;justify-content:center;background:rgba(4,2,10,.88);padding:20px;}
+#gdModal .gdm-card{position:relative;width:min(96vw,940px);height:min(88vh,620px);border-radius:16px;overflow:hidden;
+  display:flex;align-items:stretch;
+  background:linear-gradient(180deg,rgba(34,24,78,.98),rgba(18,12,44,.99));border:1px solid rgba(140,110,255,.45);
+  box-shadow:0 20px 60px rgba(0,0,0,.7),0 0 50px rgba(120,80,255,.2);animation:gdm-in .28s cubic-bezier(.2,.9,.3,1) both;}
+@keyframes gdm-in{from{opacity:0;transform:translateY(18px) scale(.97);}to{opacity:1;transform:translateY(0) scale(1);}}
+/* 左: 画像（余白を作らず枠いっぱいに広げる） */
+#gdModal .gdm-hero{position:relative;width:46%;flex-shrink:0;overflow:hidden;background:#0d0920;}
+#gdModal .gdm-hero .gdm-hero-blur{display:none;}
+#gdModal .gdm-hero .gdm-hero-img{position:absolute;inset:0;background-size:cover;background-position:center 15%;background-repeat:no-repeat;}
+#gdModal .gdm-hero::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(90deg,transparent 68%,rgba(24,16,58,.9) 100%);}
+/* 右: 説明 */
+#gdModal .gdm-body{flex:1;min-width:0;padding:24px 26px;overflow-y:auto;}
+#gdModal .gdm-name{font-family:var(--fd);font-size:1.5em;color:var(--gold);margin-bottom:14px;text-shadow:0 2px 14px rgba(0,0,0,.7);}
+#gdModal .gdm-desc{font-size:.86em;color:#cfc4ee;line-height:1.9;}
+#gdModal .gdm-close{position:absolute;top:12px;right:12px;z-index:3;padding:7px 13px;font-size:.8em;margin:0;}
+@media(max-width:720px){
+  #gdModal .gdm-card{flex-direction:column;height:auto;max-height:90vh;overflow-y:auto;}
+  #gdModal .gdm-hero{width:100%;height:min(40vh,280px);}
+  #gdModal .gdm-hero::after{background:linear-gradient(180deg,transparent 65%,rgba(24,16,58,.92) 100%);}
+  #gdModal .gdm-body{overflow:visible;}
+}
+.gd-card-body{flex:1;min-width:0;}
+.gd-card-name{font-family:var(--fd);font-size:1.02em;color:var(--text);margin-bottom:4px;}
+.gd-card-desc{font-size:.79em;color:var(--dim);line-height:1.75;}
+.gd-tags{margin-top:6px;display:flex;flex-wrap:wrap;gap:5px;}
+.gd-tag{font-size:.68em;padding:2px 8px;border-radius:99px;background:rgba(45,212,191,.13);color:var(--teal);border:1px solid rgba(45,212,191,.3);}
+.gd-tag.dmg{background:rgba(239,69,118,.13);color:#ff8aa8;border-color:rgba(239,69,118,.3);}
+.gd-tag.gold{background:rgba(242,183,5,.13);color:var(--gold);border-color:rgba(242,183,5,.3);}
+.gd-stage{border-left:2px solid var(--panel-line);padding:6px 0 6px 11px;margin-top:8px;}
+.gd-stage-name{font-family:var(--fd);font-size:.9em;color:var(--vio);}
+.gd-stage-meta{font-size:.68em;color:var(--dim);margin:2px 0 3px;}
+.gd-stage-desc{font-size:.76em;color:var(--dim);line-height:1.7;}
+/* 超能力: 系統ごとに枠で囲い、表形式で見せる */
+.pw-line{border:1px solid rgba(140,110,255,.4);border-radius:11px;overflow:hidden;margin-bottom:12px;background:rgba(14,9,32,.5);}
+.pw-line-head{padding:8px 12px;font-family:var(--fd);font-size:.92em;color:var(--gold);
+  background:linear-gradient(180deg,rgba(60,42,128,.75),rgba(38,26,88,.65));border-bottom:1px solid rgba(140,110,255,.3);}
+.pw-table{width:100%;border-collapse:collapse;font-size:.75em;}
+.pw-table th{background:rgba(28,20,64,.75);color:#b6a9e2;font-weight:600;text-align:left;padding:6px 9px;
+  border-bottom:1px solid rgba(140,110,255,.25);white-space:nowrap;font-size:.94em;}
+.pw-table td{padding:7px 9px;border-bottom:1px solid rgba(140,110,255,.14);color:#cfc4ee;line-height:1.65;vertical-align:top;}
+.pw-table tr:last-child td{border-bottom:none;}
+.pw-table .pw-nm{font-family:var(--fd);color:var(--vio);white-space:nowrap;font-size:1.04em;}
+.pw-table .pw-lv{white-space:nowrap;color:var(--teal);}
+.pw-table .pw-cost{white-space:nowrap;color:var(--gold);text-align:center;}
+.pw-table .pw-tm{white-space:nowrap;color:#b6a9e2;font-size:.94em;}
+.pw-table .pw-ef{min-width:150px;}
+/* 役職: ステータス表示 */
+.rl-stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:7px;margin-top:9px;}
+/* 別窓（モーダル）では1列に縦並びし、横幅いっぱいに伸ばす */
+#gdModal .rl-stats{display:flex;flex-direction:column;gap:8px;}
+#gdModal .rl-stat{width:100%;padding:11px 16px;}
+#gdModal .rl-stat .rl-k{font-size:.82em;}
+#gdModal .rl-stat .rl-v{font-size:1.05em;}
+.rl-stat{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:6px 10px;border-radius:8px;
+  background:rgba(14,9,32,.6);border:1px solid rgba(140,110,255,.25);}
+.rl-stat .rl-k{font-size:.7em;color:var(--dim);white-space:nowrap;}
+.rl-stat .rl-v{font-family:var(--fd);font-size:.92em;font-weight:700;white-space:nowrap;}
+.rl-v.up{color:var(--teal);}
+.rl-v.down{color:#ff8aa8;}
+.rl-v.norm{color:#cfc4ee;}
+.rl-special{margin-top:9px;font-size:.78em;color:#cfc4ee;line-height:1.8;
+  background:rgba(45,212,191,.08);border:1px solid rgba(45,212,191,.28);border-radius:9px;padding:8px 11px;}
+.rl-special b{color:var(--teal);}
+.gd-rule{background:rgba(26,18,64,.5);border:1px solid var(--panel-line);border-left:3px solid var(--vio);border-radius:9px;padding:12px 14px;margin-bottom:11px;}
+.gd-rule h4{margin:0 0 6px;font-family:var(--fd);font-size:.98em;color:var(--teal);}
+.gd-rule p{margin:0;font-size:.8em;color:var(--dim);line-height:1.85;}
+.gd-rule ul{margin:6px 0 0;padding-left:18px;font-size:.8em;color:var(--dim);line-height:1.85;}
+@media(max-width:640px){
+  #guideScreen .gd-nav{width:118px;padding:8px 5px;}
+  #guideScreen .gd-nav button{font-size:.78em;height:54px;padding:0 8px;}
+  #guideScreen .gd-nav button .gdn-img{width:58%;}
+  #guideScreen .gd-content{padding:14px;}
+  .gd-card{flex-direction:column;}
+  .gd-card .gd-thumb,.gd-card.wide .gd-thumb{width:100%;height:190px;}
+  .pw-table{font-size:.68em;}
+  .pw-table th,.pw-table td{padding:5px 6px;}
+  .rl-stats{grid-template-columns:repeat(auto-fill,minmax(108px,1fr));}
+}
 *{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;overflow-y:auto;}
 body{font-family:var(--fb);background:radial-gradient(circle at 20% 0%,#241a4d,var(--bg) 55%);color:var(--text);}
 .wrap{max-width:1100px;margin:0 auto;padding:8px 12px;min-height:100vh;display:flex;flex-direction:column;}
 .wrap.in-game{height:100vh;overflow:hidden;max-width:none;}
+body:has(.wrap.in-game){background:transparent;}
 .top-bar{text-align:center;flex-shrink:0;padding-bottom:4px;}
 .top-bar.hidden{display:none;}
 .top-bar h1{font-family:var(--fd);font-weight:700;letter-spacing:.08em;font-size:1.2rem;background:linear-gradient(90deg,var(--teal),var(--vio));-webkit-background-clip:text;background-clip:text;color:transparent;display:inline;}
@@ -23,14 +268,36 @@ body{font-family:var(--fb);background:radial-gradient(circle at 20% 0%,#241a4d,v
 #error{position:fixed;top:4px;left:50%;transform:translateX(-50%);color:var(--danger);font-size:.82em;text-align:center;min-height:1em;z-index:200;pointer-events:none;background:rgba(6,3,16,.85);padding:2px 12px;border-radius:6px;}
 #error:empty{background:transparent;}
 /* --- panels --- */
-.panel{border:1px solid var(--panel-line);border-radius:10px;padding:12px;background:linear-gradient(180deg,rgba(255,255,255,.015),rgba(0,0,0,.1)),var(--panel);box-shadow:0 4px 16px rgba(0,0,0,.3);}
+.panel{border:1px solid rgba(140,110,255,.3);border-radius:12px;padding:14px;
+  background:linear-gradient(180deg,rgba(38,26,88,.82),rgba(20,13,50,.88));
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  box-shadow:0 10px 34px rgba(0,0,0,.5);}
 input{padding:6px 10px;background:#13102a;border:1px solid var(--panel-line);border-radius:6px;color:var(--text);font-family:var(--fb);font-size:.85em;}
 input:focus{outline:none;border-color:var(--vio);}
-button{padding:6px 12px;cursor:pointer;margin:2px 4px 2px 0;background:linear-gradient(180deg,#4a3690,#362a6b);border:1px solid var(--panel-line);color:var(--text);border-radius:6px;font-family:var(--fb);font-size:.8em;font-weight:500;transition:transform .1s,box-shadow .1s;}
-button:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 3px 10px rgba(155,107,255,.3);}
+button{position:relative;overflow:hidden;padding:9px 16px;cursor:pointer;margin:2px 4px 2px 0;
+  background:linear-gradient(180deg,rgba(72,52,150,.95),rgba(38,26,88,.95));
+  border:1px solid rgba(140,110,255,.45);color:var(--text);border-radius:8px;
+  font-family:var(--fd);font-size:.84em;font-weight:600;letter-spacing:.04em;
+  box-shadow:0 2px 10px rgba(0,0,0,.45),inset 0 1px 0 rgba(190,170,255,.18);
+  transition:transform .14s cubic-bezier(.2,.9,.3,1),box-shadow .14s ease,border-color .14s ease,filter .14s ease;}
+button::before{content:'';position:absolute;inset:0;border-radius:inherit;pointer-events:none;
+  background:linear-gradient(120deg,transparent 30%,rgba(190,170,255,.28) 50%,transparent 70%);
+  transform:translateX(-120%);transition:transform .55s ease;}
+button:hover:not(:disabled)::before{transform:translateX(120%);}
+button:hover:not(:disabled){transform:translateY(-2px);border-color:rgba(175,150,255,.9);
+  box-shadow:0 6px 20px rgba(120,80,255,.45),inset 0 1px 0 rgba(210,195,255,.3);filter:brightness(1.1);}
+button:active:not(:disabled){transform:translateY(1px) scale(.97);
+  box-shadow:0 1px 6px rgba(120,80,255,.5),inset 0 2px 8px rgba(0,0,0,.45);filter:brightness(1.25);}
 button:disabled{opacity:.3;cursor:not-allowed;}
-button.pri{background:linear-gradient(180deg,var(--teal),#1b9d8e);color:#06231f;border-color:transparent;font-weight:700;}
-button.dan{background:linear-gradient(180deg,var(--danger),#a82f52);border-color:transparent;}
+button.pri{background:linear-gradient(180deg,rgba(45,212,191,.95),rgba(20,140,128,.95));color:#04211d;
+  border-color:rgba(120,255,235,.6);box-shadow:0 2px 12px rgba(45,212,191,.35),inset 0 1px 0 rgba(220,255,250,.4);font-weight:700;}
+button.pri:hover:not(:disabled){box-shadow:0 6px 24px rgba(45,212,191,.55),inset 0 1px 0 rgba(220,255,250,.5);}
+button.dan{background:linear-gradient(180deg,rgba(239,69,118,.95),rgba(150,32,66,.95));border-color:rgba(255,140,175,.5);
+  box-shadow:0 2px 12px rgba(239,69,118,.3),inset 0 1px 0 rgba(255,200,215,.28);}
+/* クリック時の波紋エフェクト */
+.btn-ripple{position:absolute;border-radius:50%;pointer-events:none;transform:translate(-50%,-50%) scale(0);
+  background:radial-gradient(circle,rgba(210,195,255,.55),rgba(155,107,255,0) 70%);animation:btn-ripple .55s ease-out forwards;}
+@keyframes btn-ripple{to{transform:translate(-50%,-50%) scale(1);opacity:0;}}
 ul{list-style:none;padding:0;}
 h2{font-family:var(--fd);font-size:.95rem;color:var(--teal);margin-bottom:6px;}
 h3{font-family:var(--fd);font-size:.82rem;color:var(--dim);margin:8px 0 4px;}
@@ -38,68 +305,229 @@ h3{font-family:var(--fd);font-size:.82rem;color:var(--dim);margin:8px 0 4px;}
 .rdy{color:#6ee7a0;font-size:.78em;} .nrdy{color:var(--dim);font-size:.78em;}
 .tb{background:var(--gold);color:#3a2900;padding:1px 6px;border-radius:99px;font-size:.68em;font-weight:700;margin-left:4px;}
 .db{background:var(--danger);color:#fff;padding:1px 6px;border-radius:99px;font-size:.68em;font-weight:700;margin-left:4px;}
-.bar-bg{background:#0d0920;border-radius:4px;height:8px;width:100%;display:block;overflow:hidden;border:1px solid var(--panel-line);}
-.bar-hp{background:linear-gradient(90deg,#ef4576,#ff8a9c);height:100%;transition:width .4s;}
-.bar-en{background:linear-gradient(90deg,#2dd4bf,#7ee8f5);height:100%;transition:width .4s;}
-.bar-xp{background:linear-gradient(90deg,#f2b705,#ffd54f);height:100%;transition:width .4s;}
-.bar-bg-xp{background:#0d0920;border-radius:2px;height:3px;width:100%;display:block;overflow:hidden;border:1px solid var(--panel-line);}
+.bar-bg{background:rgba(8,5,20,.75);border-radius:99px;height:8px;width:100%;display:block;overflow:hidden;border:1px solid rgba(140,110,255,.25);}
+.bar-hp{background:linear-gradient(90deg,#ef4576,#ff8a9c);height:100%;transition:width .4s;box-shadow:0 0 10px rgba(239,69,118,.55);}
+.bar-en{background:linear-gradient(90deg,#2dd4bf,#7ee8f5);height:100%;transition:width .4s;box-shadow:0 0 10px rgba(45,212,191,.55);}
+.bar-xp{background:linear-gradient(90deg,#f2b705,#ffd54f);height:100%;transition:width .4s;box-shadow:0 0 8px rgba(242,183,5,.6);}
+.bar-bg-xp{background:rgba(8,5,20,.75);border-radius:99px;height:3px;width:100%;display:block;overflow:hidden;border:1px solid rgba(140,110,255,.2);}
 .lv{font-size:.7em;font-weight:700;color:var(--gold);margin-left:4px;}
-.sr{font-size:.72em;color:var(--dim);margin-top:1px;}
+.sr{font-size:.72em;color:var(--dim);margin-top:2px;}
 /* pre-game centered */
-#entry,#lobby,#roleSelect{max-width:420px;margin:20px auto;}
+/* ロビー/エントリー画面の背景（ホーム画面と同じ演出） */
+#screenBg{position:fixed;inset:0;z-index:-1;display:none;overflow:hidden;background:#07040f;}
+#screenBg.on{display:block;}
+/* ゲーム中は盤面の視認性を優先し、背景を控えめにする */
+#screenBg.dim .sb-char{opacity:.28;}
+#screenBg.dim .sb-focus{background:radial-gradient(ellipse 62% 92% at 50% 50%,rgba(7,4,15,.96) 44%,rgba(7,4,15,.82) 76%,rgba(7,4,15,.7) 100%);}
+#screenBg .sb-bg{position:absolute;inset:0;background-size:cover;background-position:center;opacity:.22;filter:saturate(.8) blur(2px);animation:hm-drift 40s ease-in-out infinite alternate;}
+#screenBg .sb-veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,4,15,.55),rgba(7,4,15,.8));}
+#screenBg .sb-char{position:absolute;top:0;bottom:0;width:38%;background-size:cover;background-position:center top;
+  opacity:0;transition:opacity 1.4s ease;}
+#screenBg .sb-char.on{opacity:.9;}
+#screenBg .sb-char.left{left:0;
+  -webkit-mask-image:linear-gradient(90deg,rgba(0,0,0,1) 0%,rgba(0,0,0,.95) 34%,rgba(0,0,0,.4) 72%,rgba(0,0,0,0) 100%);
+  mask-image:linear-gradient(90deg,rgba(0,0,0,1) 0%,rgba(0,0,0,.95) 34%,rgba(0,0,0,.4) 72%,rgba(0,0,0,0) 100%);}
+#screenBg .sb-char.right{right:0;
+  -webkit-mask-image:linear-gradient(270deg,rgba(0,0,0,1) 0%,rgba(0,0,0,.95) 34%,rgba(0,0,0,.4) 72%,rgba(0,0,0,0) 100%);
+  mask-image:linear-gradient(270deg,rgba(0,0,0,1) 0%,rgba(0,0,0,.95) 34%,rgba(0,0,0,.4) 72%,rgba(0,0,0,0) 100%);}
+#screenBg .sb-focus{position:absolute;inset:0;
+  background:radial-gradient(ellipse 48% 80% at 50% 50%,rgba(7,4,15,.93) 32%,rgba(7,4,15,.62) 64%,transparent 100%);}
+/* 超能力覚醒画面（説明画面のモーダルと同じ構成） */
+#powerReveal{width:min(96vw,940px);margin:12px auto;}
+#powerReveal .pr-card{position:relative;height:min(88vh,620px);border-radius:16px;overflow:hidden;display:flex;align-items:stretch;
+  background:linear-gradient(180deg,rgba(34,24,78,.96),rgba(18,12,44,.98));border:1px solid rgba(140,110,255,.45);
+  box-shadow:0 20px 60px rgba(0,0,0,.65),0 0 50px rgba(120,80,255,.18);}
+#powerReveal .pr-hero{position:relative;width:46%;flex-shrink:0;overflow:hidden;background:#0d0920;}
+#powerReveal .pr-hero .pr-hero-img{position:absolute;inset:0;background-size:cover;background-position:center 15%;animation:gdm-in .5s ease-out both;}
+#powerReveal .pr-hero::after{content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(90deg,transparent 68%,rgba(24,16,58,.9) 100%);}
+#powerReveal .pr-body{flex:1;min-width:0;padding:24px 26px;overflow-y:auto;display:flex;flex-direction:column;
+  scrollbar-width:none;-ms-overflow-style:none;}
+#powerReveal .pr-body::-webkit-scrollbar{display:none;width:0;height:0;}
+#powerReveal #powerRevealList{flex-shrink:0;}
+#powerReveal .pr-name{font-family:var(--fd);font-size:1.6em;color:var(--gold);margin-bottom:8px;text-shadow:0 2px 14px rgba(0,0,0,.75);}
+#powerReveal .pr-lead{font-size:.78em;color:var(--dim);line-height:1.8;margin-bottom:14px;}
+@media(max-width:720px){
+  #powerReveal .pr-card{flex-direction:column;height:auto;max-height:90vh;overflow-y:auto;}
+  #powerReveal .pr-hero{width:100%;height:min(34vh,240px);}
+  #powerReveal .pr-hero::after{background:linear-gradient(180deg,transparent 62%,rgba(24,16,58,.92) 100%);}
+  #powerReveal .pr-body{overflow:visible;}
+  #powerReveal #confirmPowersBtn{margin-top:16px !important;}
+}
+#entry,#lobby,#roleSelect{max-width:440px;margin:20px auto;}
+/* エントリー/ロビー画面の共通ヘッダー（ロゴ） */
+.scr-logo{display:block;width:min(60vw,260px);margin:0 auto 16px;filter:drop-shadow(0 0 22px rgba(140,120,255,.65));}
+.scr-sub{text-align:center;font-family:var(--fd);font-size:.92em;color:var(--gold);letter-spacing:.12em;margin-bottom:14px;}
+/* ロビー画面の刷新 */
+#lobby .lb-code{display:flex;align-items:center;gap:10px;justify-content:center;background:rgba(13,9,32,.75);border:1px solid rgba(140,110,255,.35);border-radius:10px;padding:11px 14px;margin-bottom:14px;}
+#lobby .lb-code-label{font-size:.72em;color:var(--dim);letter-spacing:.1em;}
+#lobby .lb-code-val{font-family:var(--fd);font-size:1.5em;font-weight:700;color:var(--gold);letter-spacing:.24em;text-shadow:0 0 16px rgba(242,183,5,.45);}
+#lobby .lb-copy{font-size:.68em;padding:5px 11px;margin:0;}
+#lobby .lb-slots{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
+.lb-slot{display:flex;align-items:center;gap:10px;padding:11px 12px;border-radius:10px;background:linear-gradient(180deg,rgba(46,32,102,.6),rgba(26,18,64,.6));border:1px solid rgba(140,110,255,.28);}
+.lb-slot.me-slot{border-color:rgba(45,212,191,.55);box-shadow:0 0 16px rgba(45,212,191,.18);}
+.lb-slot.empty{background:rgba(20,14,44,.3);border-style:dashed;border-color:var(--panel-line);color:var(--dim);justify-content:center;font-size:.78em;letter-spacing:.08em;}
+.lb-slot .lb-dot{width:11px;height:11px;border-radius:50%;flex-shrink:0;box-shadow:0 0 10px currentColor;}
+.lb-slot .lb-name{flex:1;font-family:var(--fd);font-size:.95em;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.lb-slot .lb-badge{font-size:.66em;padding:3px 9px;border-radius:99px;flex-shrink:0;}
+.lb-badge.ready{background:rgba(45,212,191,.18);color:var(--teal);border:1px solid rgba(45,212,191,.4);}
+.lb-badge.wait{background:rgba(255,255,255,.05);color:var(--dim);border:1px solid var(--panel-line);}
+.lb-badge.host{background:rgba(242,183,5,.16);color:var(--gold);border:1px solid rgba(242,183,5,.35);}
+.lb-badge.bot{background:rgba(155,107,255,.16);color:var(--vio);border:1px solid rgba(155,107,255,.35);}
+#lobby .lb-actions{display:flex;gap:8px;flex-wrap:wrap;}
+#lobby .lb-actions button{flex:1;min-width:110px;margin:0;padding:12px 10px;}
 #finished{display:none;position:fixed;inset:0;z-index:60;align-items:center;justify-content:center;background:rgba(6,3,16,.9);}
 #finished .panel{max-width:420px;width:90%;}
 .role-card{border:1px solid var(--panel-line);border-radius:8px;padding:10px;margin-bottom:8px;background:rgba(255,255,255,.02);display:flex;justify-content:space-between;align-items:center;gap:10px;}
 /* role carousel */
-#roleSelect{max-width:520px;margin:20px auto;}
-.carousel-wrap{position:relative;overflow:hidden;}
+#roleSelect{max-width:620px;margin:12px auto;}
+.carousel-wrap{position:relative;overflow:hidden;border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.6);}
 .carousel-track{display:flex;transition:transform .4s ease;}
-.carousel-slide{min-width:100%;padding:0 8px;box-sizing:border-box;}
-.carousel-slide .rc-card{border:1px solid var(--panel-line);border-radius:12px;padding:16px;background:rgba(255,255,255,.03);text-align:center;}
-.carousel-slide .rc-img{width:100%;max-height:320px;object-fit:contain;border-radius:8px;margin-bottom:10px;}
-.carousel-slide .rc-name{font-family:var(--fd);font-size:1.2em;font-weight:700;color:var(--gold);margin-bottom:6px;}
-.carousel-slide .rc-desc{font-size:.82em;color:var(--dim);line-height:1.5;margin-bottom:10px;text-align:left;}
-.carousel-btn{position:absolute;top:50%;transform:translateY(-50%);background:rgba(155,107,255,.3);border:none;color:#fff;font-size:1.5em;width:36px;height:36px;border-radius:50%;cursor:pointer;z-index:5;}
-.carousel-btn:hover{background:rgba(155,107,255,.6);}
-.carousel-btn.prev{left:4px;}
-.carousel-btn.next{right:4px;}
-.carousel-dots{display:flex;justify-content:center;gap:6px;margin-top:8px;}
-.carousel-dots .dot{width:8px;height:8px;border-radius:50%;background:var(--panel-line);cursor:pointer;}
-.carousel-dots .dot.active{background:var(--gold);}
+.carousel-slide{min-width:100%;box-sizing:border-box;}
+/* 画像を枠いっぱいに広げ、その上に説明を重ねる */
+.carousel-slide .rc-card{position:relative;border:1px solid rgba(140,110,255,.35);border-radius:16px;overflow:hidden;
+  height:min(86vh,760px);display:flex;flex-direction:column;justify-content:flex-end;}
+.carousel-slide .rc-bgblur{position:absolute;inset:-10%;background-size:cover;background-position:center;filter:blur(24px) brightness(.45) saturate(.85);}
+.carousel-slide .rc-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 14%;}
+.carousel-slide .rc-shade{position:absolute;inset:0;background:linear-gradient(180deg,transparent 60%,rgba(10,6,26,.5) 80%,rgba(10,6,26,.9) 100%);}
+/* 役職名・説明・ボタンは画像より少し遅れてフェードインさせる */
+.carousel-slide .rc-overlay{position:relative;z-index:2;padding:18px 18px 16px;}
+.carousel-slide.reveal .rc-overlay{animation:rc-fade .55s ease-out .35s both;}
+@keyframes rc-fade{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:translateY(0);}}
+.carousel-slide .rc-name{font-family:var(--fd);font-size:1.6em;font-weight:700;color:var(--gold);margin:0 0 10px 64px;
+  text-shadow:0 2px 18px rgba(0,0,0,.98),0 0 26px rgba(242,183,5,.4);}
+/* テキストボックス: 枠線なし・透明度高め・境目をぼかす */
+.carousel-slide .rc-desc{font-size:.85em;color:#e6dffb;line-height:1.9;margin-bottom:14px;text-align:left;
+  background:rgba(10,6,26,.32);border:none;border-radius:12px;padding:13px 15px;
+  backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);
+  text-shadow:0 1px 10px rgba(0,0,0,.95);
+  -webkit-mask-image:radial-gradient(ellipse 118% 130% at 50% 50%,#000 60%,transparent 100%);
+  mask-image:radial-gradient(ellipse 118% 130% at 50% 50%,#000 60%,transparent 100%);}
+.carousel-slide .rc-card button{width:100%;padding:14px;font-size:1em;margin:0;}
+/* 左右端のクリック領域 */
+.car-edge{position:absolute;top:0;bottom:0;width:16%;min-width:56px;z-index:6;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:2.4em;color:rgba(255,255,255,.35);text-shadow:0 2px 14px rgba(0,0,0,.9);
+  transition:background .2s ease,color .2s ease;user-select:none;}
+.car-edge.prev{left:0;background:linear-gradient(90deg,rgba(10,6,26,.45),transparent);}
+.car-edge.next{right:0;background:linear-gradient(270deg,rgba(10,6,26,.45),transparent);}
+.car-edge:hover{color:rgba(255,255,255,.95);}
+.car-edge.prev:hover{background:linear-gradient(90deg,rgba(120,80,220,.5),transparent);}
+.car-edge.next:hover{background:linear-gradient(270deg,rgba(120,80,220,.5),transparent);}
+.car-edge:active{transform:scale(.97);}
+.carousel-dots{display:flex;justify-content:center;gap:7px;margin-top:10px;}
+.carousel-dots .dot{width:9px;height:9px;border-radius:50%;background:var(--panel-line);cursor:pointer;transition:all .2s ease;}
+.carousel-dots .dot.active{background:var(--gold);box-shadow:0 0 10px rgba(242,183,5,.7);transform:scale(1.2);}
 /* player card role image */
 .p-card-img{width:32px;height:32px;border-radius:6px;object-fit:cover;flex-shrink:0;border:1px solid var(--panel-line);}
 /* ===== GAME LAYOUT (3-column) ===== */
 #game{display:none;flex:1;min-height:0;}
-.game-grid{display:grid;grid-template-columns:220px 1fr 220px;grid-template-rows:auto 1fr;gap:8px;height:100%;min-height:0;}
-.game-header{grid-column:1/4;display:flex;justify-content:center;align-items:baseline;gap:12px;flex-shrink:0;}
-.game-header h2{margin:0;}
+.game-grid{position:relative;display:grid;grid-template-columns:220px 1fr 220px;grid-template-rows:auto 1fr;gap:8px;height:100%;min-height:0;}
+.game-header{grid-column:1/4;display:flex;justify-content:center;align-items:center;gap:14px;flex-shrink:0;
+  padding:8px 14px;border-radius:0 0 14px 14px;
+  background:linear-gradient(180deg,rgba(38,26,88,.72),rgba(20,13,50,.5));
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  border:1px solid rgba(140,110,255,.28);border-top:none;}
+.game-header h2{margin:0;font-family:var(--fd);font-size:1.02em;font-weight:700;letter-spacing:.06em;color:var(--text);}
+.game-header h2 #mapLabel{text-shadow:0 0 14px rgba(242,183,5,.4);}
+/* 次のプレイヤー予告 */
+.next-turn{display:flex;align-items:center;gap:7px;padding:4px 11px;border-radius:99px;
+  background:rgba(14,9,34,.6);border:1px solid rgba(140,110,255,.3);}
+.next-turn .nt-label{font-size:.6em;letter-spacing:.14em;color:var(--dim);}
+.next-turn .nt-name{font-family:var(--fd);font-size:.82em;color:var(--teal);max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+/* 順位表示（右カラム内・ログの上） */
+.rank-board{display:flex;flex-direction:column;gap:4px;flex-shrink:0;
+  padding:8px 10px;border-radius:11px;
+  background:linear-gradient(180deg,rgba(38,26,88,.72),rgba(20,13,50,.62));
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  border:1px solid rgba(140,110,255,.28);box-shadow:0 4px 18px rgba(0,0,0,.45);}
+.rank-board .rk-title{font-size:.58em;letter-spacing:.18em;color:var(--dim);text-align:center;margin-bottom:2px;}
+.rank-row{display:flex;align-items:center;gap:6px;font-size:.72em;transition:all .3s ease;}
+.rank-row .rk-no{font-family:var(--fd);font-weight:700;width:15px;text-align:center;}
+.rank-row.r1 .rk-no{color:#ffd54f;text-shadow:0 0 8px rgba(242,183,5,.8);}
+.rank-row.r2 .rk-no{color:#d8d8e8;}
+.rank-row.r3 .rk-no{color:#d8a06a;}
+.rank-row.r4 .rk-no{color:var(--dim);}
+.rank-row .rk-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;box-shadow:0 0 6px currentColor;}
+.rank-row .rk-name{max-width:88px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text);}
+.rank-row .rk-pos{color:var(--dim);font-size:.88em;margin-left:auto;padding-left:6px;}
+.rank-row.me-row .rk-name{color:var(--teal);font-weight:700;}
+.rank-row.goal .rk-pos{color:var(--gold);}
 .col-left{grid-column:1;grid-row:2;overflow-y:auto;display:flex;flex-direction:column;gap:6px;min-height:0;}
 .col-center{grid-column:2;grid-row:2;display:flex;align-items:center;justify-content:center;min-height:0;overflow:hidden;}
 .col-center canvas{border-radius:10px;border:1px solid var(--panel-line);box-shadow:0 4px 20px rgba(0,0,0,.5);max-width:100%;max-height:100%;object-fit:contain;}
 .col-right{grid-column:3;grid-row:2;overflow-y:auto;display:flex;flex-direction:column;gap:6px;min-height:0;}
-.p-card{border:1px solid var(--panel-line);border-radius:8px;padding:8px;background:rgba(255,255,255,.02);}
+/* ゲーム画面のカード類も、他画面と同じすりガラス調に統一する */
+.p-card{border:1px solid rgba(140,110,255,.3);border-radius:11px;padding:10px;
+  background:linear-gradient(180deg,rgba(46,32,102,.55),rgba(24,16,58,.6));
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  box-shadow:0 3px 14px rgba(0,0,0,.35);transition:border-color .2s ease,box-shadow .2s ease;}
+.p-card.turn-now{border-color:rgba(242,183,5,.65);box-shadow:0 0 20px rgba(242,183,5,.22);}
 .p-name{font-size:.82em;display:flex;align-items:center;gap:4px;}
 .p-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-#log{max-height:100px;overflow-y:auto;background:#0d0920;padding:6px 8px;border-radius:8px;font-size:.72em;border:1px solid var(--panel-line);color:var(--dim);}
+#log{max-height:100px;overflow-y:auto;padding:8px 10px;border-radius:11px;font-size:.72em;
+  background:linear-gradient(180deg,rgba(24,16,58,.6),rgba(14,9,34,.7));
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  border:1px solid rgba(140,110,255,.28);color:var(--dim);line-height:1.7;}
 /* カスタムスクロールバー（テーマカラーに合わせる） */
-.col-left,.col-right,#log{scrollbar-width:thin;scrollbar-color:var(--vio) transparent;}
-.col-left::-webkit-scrollbar,.col-right::-webkit-scrollbar,#log::-webkit-scrollbar{width:4px;}
-.col-left::-webkit-scrollbar-track,.col-right::-webkit-scrollbar-track,#log::-webkit-scrollbar-track{background:rgba(13,9,32,.4);border-radius:99px;}
-.col-left::-webkit-scrollbar-thumb,.col-right::-webkit-scrollbar-thumb,#log::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--vio),#5a3fb8);border-radius:99px;border:1px solid var(--panel-line);}
-.col-left::-webkit-scrollbar-thumb:hover,.col-right::-webkit-scrollbar-thumb:hover,#log::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#ad84ff,var(--vio));}
+/* 左カラムはスクロール可能だがバーは表示しない */
+.col-left{scrollbar-width:none;-ms-overflow-style:none;}
+.col-left::-webkit-scrollbar{display:none;width:0;height:0;}
+.col-right,#log{scrollbar-width:thin;scrollbar-color:var(--vio) transparent;}
+.col-right::-webkit-scrollbar,#log::-webkit-scrollbar{width:4px;}
+.col-right::-webkit-scrollbar-track,#log::-webkit-scrollbar-track{background:rgba(13,9,32,.4);border-radius:99px;}
+.col-right::-webkit-scrollbar-thumb,#log::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--vio),#5a3fb8);border-radius:99px;border:1px solid var(--panel-line);}
+.col-right::-webkit-scrollbar-thumb:hover,#log::-webkit-scrollbar-thumb:hover{background:linear-gradient(180deg,#ad84ff,var(--vio));}
 #log div{margin-bottom:2px;line-height:1.3;}
 #log div:last-child{color:var(--text);}
 /* action buttons full width in right column */
-.col-right button{width:100%;text-align:center;margin:2px 0;}
+.col-right button{width:100%;text-align:center;margin:3px 0;padding:11px 12px;}
+#myTurnControls{border:1px solid rgba(140,110,255,.32);border-radius:11px;padding:10px;
+  background:linear-gradient(180deg,rgba(46,32,102,.5),rgba(24,16,58,.58));
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  box-shadow:0 3px 14px rgba(0,0,0,.35);}
 /* ability panel */
-#abilityPanel{border:1px solid var(--panel-line);border-radius:8px;padding:6px;background:var(--panel);margin:4px 0;}
-.ab-card{padding:6px 8px;border-radius:6px;margin-bottom:4px;cursor:pointer;border:1px solid var(--panel-line);transition:background .15s;}
-.ab-card:hover:not(.disabled){background:rgba(155,107,255,.12);}
-.ab-card.disabled{opacity:.35;cursor:not-allowed;}
-.ab-card .ab-name{font-size:.82em;font-weight:700;} .ab-card .ab-cost{font-size:.7em;color:var(--teal);margin-left:4px;}
-.ab-card .ab-desc{font-size:.7em;color:var(--dim);margin-top:1px;}
-.ab-card .ab-tag{font-size:.65em;padding:1px 4px;border-radius:3px;margin-left:4px;}
-.ab-card .ab-tag.evo{background:rgba(242,183,5,.2);color:var(--gold);}
+/* 超能力パネル: マップを覆う中央モーダルとして最前面に表示する */
+#abilityPanel{position:fixed;inset:0;z-index:210;display:none;align-items:center;justify-content:center;
+  background:rgba(4,2,10,.72);padding:20px;}
+#abilityPanel.open{display:flex;}
+#abilityPanel .ap-inner{width:min(94vw,400px);max-height:78vh;overflow-y:auto;padding:14px;border-radius:16px;
+  background:linear-gradient(180deg,rgba(52,36,116,.98),rgba(24,16,58,.99));
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid rgba(170,140,255,.55);
+  box-shadow:0 18px 55px rgba(0,0,0,.8),0 0 46px rgba(130,90,255,.3);
+  animation:ap-in .22s cubic-bezier(.2,.9,.3,1) both;}
+@keyframes ap-in{from{opacity:0;transform:translateY(-12px) scale(.96);}to{opacity:1;transform:translateY(0) scale(1);}}
+#abilityPanel .ap-inner::-webkit-scrollbar{width:5px;}
+#abilityPanel .ap-inner::-webkit-scrollbar-track{background:rgba(13,9,32,.5);border-radius:99px;}
+#abilityPanel .ap-inner::-webkit-scrollbar-thumb{background:linear-gradient(180deg,var(--vio),#5a3fb8);border-radius:99px;}
+#abilityPanel .ap-head{display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:2px 4px 11px;margin-bottom:10px;border-bottom:1px solid rgba(170,140,255,.28);}
+#abilityPanel .ap-title{font-family:var(--fd);font-size:1em;font-weight:700;color:var(--gold);letter-spacing:.08em;}
+#abilityPanel .ap-psy{font-size:.74em;color:var(--teal);margin-left:auto;margin-right:6px;}
+#abilityPanel .ap-close{padding:4px 11px;font-size:.74em;margin:0;}
+#abilityPanel .ap-empty{padding:20px 8px;text-align:center;color:var(--dim);font-size:.82em;}
+/* 超能力カードのデザイン刷新 */
+.ab-card{position:relative;border-radius:11px;padding:11px 12px;margin-bottom:8px;cursor:pointer;overflow:hidden;
+  background:linear-gradient(135deg,rgba(72,50,150,.55),rgba(34,22,84,.6));
+  border:1px solid rgba(150,120,255,.35);
+  transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease;}
+.ab-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:linear-gradient(180deg,var(--vio),var(--teal));}
+.ab-card:hover{transform:translateX(3px);border-color:rgba(190,160,255,.85);
+  box-shadow:0 6px 22px rgba(130,90,255,.4);}
+.ab-card:active{transform:translateX(1px) scale(.985);}
+.ab-card .ab-top{display:flex;align-items:center;gap:7px;margin-bottom:5px;flex-wrap:wrap;}
+.ab-card .ab-name{font-family:var(--fd);font-size:.95em;font-weight:700;color:#f0e9ff;}
+.ab-card .ab-cost{font-size:.7em;padding:2px 8px;border-radius:99px;background:rgba(45,212,191,.16);
+  color:var(--teal);border:1px solid rgba(45,212,191,.4);white-space:nowrap;}
+.ab-card .ab-timing{font-size:.66em;padding:2px 7px;border-radius:99px;background:rgba(155,107,255,.14);
+  color:#c4b3ff;border:1px solid rgba(155,107,255,.3);white-space:nowrap;}
+.ab-card .ab-tag{font-size:.64em;padding:2px 7px;border-radius:99px;white-space:nowrap;}
+.ab-card .ab-tag.evo{background:rgba(242,183,5,.15);color:var(--gold);border:1px solid rgba(242,183,5,.35);}
+.ab-card .ab-tag.copy{background:rgba(255,122,198,.14);color:#ff9ed4;border:1px solid rgba(255,122,198,.32);}
+.ab-card .ab-desc{font-size:.74em;color:#bfb3e0;line-height:1.65;}
+#myTurnControls{position:relative;}
 /* ability glow */
 button.ability-glow{animation:abglow 1.2s ease-in-out infinite alternate;border-color:var(--vio);}
 @keyframes abglow{from{box-shadow:0 0 4px rgba(155,107,255,.3);}to{box-shadow:0 0 14px rgba(155,107,255,.7),0 0 24px rgba(155,107,255,.3);}}
@@ -110,10 +538,24 @@ button.ability-glow{animation:abglow 1.2s ease-in-out infinite alternate;border-
 .role-tip{cursor:help;border-bottom:1px dotted var(--dim);}
 #tooltip{display:none;position:fixed;background:#1a1240;border:1px solid var(--panel-line);border-radius:6px;padding:8px 10px;font-size:.78em;color:var(--text);min-width:180px;max-width:280px;z-index:200;box-shadow:0 6px 20px rgba(0,0,0,.7);pointer-events:none;line-height:1.5;}
 /* ===== 3D DICE ===== */
+/* モンスター戦闘オーバーレイ */
+#monsterBattleOverlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:124;background:radial-gradient(circle,rgba(80,10,60,.5),rgba(6,3,16,.93));}
+#monsterBattleOverlay .mb-inner{text-align:center;max-width:90vw;}
+#monsterBattleOverlay .mb-title{font-family:var(--fd);font-size:1.5em;font-weight:900;color:#ff7ac6;letter-spacing:.1em;text-shadow:0 0 24px rgba(255,80,180,.6);margin-bottom:10px;animation:db-pop .4s ease-out both;}
+#monsterBattleOverlay .mb-img{display:block;max-width:min(80vw,480px);max-height:46vh;object-fit:contain;border-radius:10px;margin:0 auto 10px;box-shadow:0 0 40px rgba(0,0,0,.7);animation:db-img-in .5s ease-out both;}
+#monsterBattleOverlay .mb-ability{font-size:.85em;color:var(--teal);margin-bottom:12px;min-height:1.2em;}
+#monsterBattleOverlay .mb-row{display:flex;align-items:center;justify-content:center;gap:36px;}
+#monsterBattleOverlay .mb-side{display:flex;flex-direction:column;align-items:center;gap:6px;}
+#monsterBattleOverlay .mb-name{font-family:var(--fd);font-size:.95em;color:var(--text);}
+#monsterBattleOverlay .mb-roll{font-family:var(--fd);font-size:1.4em;color:var(--gold);min-height:1.4em;}
+#monsterBattleOverlay .mb-bonus{font-size:.72em;color:#22d3ee;min-height:1.1em;}
+#monsterBattleOverlay .mb-vs{font-family:var(--fd);font-size:2em;font-weight:900;color:var(--gold);text-shadow:0 0 20px rgba(242,183,5,.5);}
+#monsterBattleOverlay .mb-result{font-family:var(--fd);font-size:1.25em;margin-top:14px;min-height:1.4em;}
 #diceOverlay,#battleOverlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:100;background:rgba(6,3,16,.55);}
 /* 災害のサイコロ演出 */
 #disasterDiceOverlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:122;background:radial-gradient(circle,rgba(120,10,10,.4),rgba(6,3,16,.88));}
-#disasterDiceOverlay .ddo-inner{text-align:center;}
+#disasterDiceOverlay .ddo-inner{text-align:center;display:flex;flex-direction:column;align-items:center;}
+#disasterDiceOverlay .d3-wrap{margin:0 auto;}
 #disasterDiceOverlay .ddo-intro{font-family:var(--fd);font-size:1.2em;font-weight:700;color:#ff8a8a;text-shadow:0 0 16px rgba(255,60,60,.5);margin-bottom:18px;min-height:1.4em;}
 #disasterDiceOverlay .ddo-result{font-family:var(--fd);font-size:1.15em;color:var(--text);text-shadow:0 0 10px rgba(0,0,0,.8);margin-top:18px;min-height:1.4em;}
 .dice-stage{display:flex;flex-direction:column;align-items:center;gap:6px;}
@@ -172,6 +614,21 @@ button.ability-glow{animation:abglow 1.2s ease-in-out infinite alternate;border-
 .battle-vs{font-family:var(--fd);font-size:1.4em;color:var(--gold);text-shadow:0 0 10px rgba(242,183,5,.5);}
 .battle-rt{font-family:var(--fd);font-size:1em;color:var(--gold);min-height:1.2em;}
 /* ターン開始バナー */
+/* 自分のターン開始時の中央メッセージ */
+#myTurnBanner{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:95;pointer-events:none;}
+#myTurnBanner .mtb-glow{position:absolute;inset:0;background:radial-gradient(ellipse 60% 34% at 50% 50%,rgba(242,183,5,.22),transparent 70%);animation:mtb-glow 2.2s ease-out both;}
+@keyframes mtb-glow{0%{opacity:0;}22%{opacity:1;}70%{opacity:1;}100%{opacity:0;}}
+#myTurnBanner .mtb-line{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(242,183,5,.9),transparent);}
+#myTurnBanner .mtb-line.t{top:calc(50% - 46px);animation:mtb-line 2.2s ease-out both;}
+#myTurnBanner .mtb-line.b{top:calc(50% + 46px);animation:mtb-line 2.2s ease-out both;}
+@keyframes mtb-line{0%{opacity:0;transform:scaleX(0);}25%{opacity:1;transform:scaleX(1);}72%{opacity:1;transform:scaleX(1);}100%{opacity:0;transform:scaleX(1);}}
+#myTurnBanner .mtb-text{position:relative;font-family:var(--fd);font-size:2.3em;font-weight:900;color:var(--gold);
+  letter-spacing:.16em;white-space:nowrap;text-shadow:0 0 30px rgba(242,183,5,.85),0 3px 0 #4a3200,0 4px 18px rgba(0,0,0,.9);
+  animation:mtb-text 2.2s cubic-bezier(.2,.9,.3,1) both;}
+@keyframes mtb-text{0%{opacity:0;transform:scale(1.5);letter-spacing:.5em;}
+  22%{opacity:1;transform:scale(1);letter-spacing:.16em;}
+  72%{opacity:1;transform:scale(1);}
+  100%{opacity:0;transform:scale(1.06);}}
 #turnBanner{position:fixed;top:0;left:0;right:0;display:none;align-items:center;justify-content:center;z-index:90;pointer-events:none;}
 #turnBanner .tb-inner{font-family:var(--fd);font-size:1.3em;font-weight:700;color:var(--gold);background:linear-gradient(180deg,rgba(18,10,34,.92),rgba(18,10,34,.85));border-bottom:2px solid rgba(242,183,5,.4);padding:18px 40px;text-align:center;letter-spacing:.06em;text-shadow:0 0 16px rgba(242,183,5,.4);animation:tb-slide .5s ease-out;width:100%;}
 @keyframes tb-slide{from{opacity:0;transform:translateY(-20px);}to{opacity:1;transform:translateY(0);}}
@@ -186,6 +643,12 @@ button.ability-glow{animation:abglow 1.2s ease-in-out infinite alternate;border-
 #disasterBanner .db-text{font-family:var(--fd);font-size:1.15em;color:var(--text);text-shadow:0 0 10px rgba(0,0,0,.8);max-width:80vw;}
 @keyframes db-img-in{from{opacity:0;transform:scale(1.15);}to{opacity:1;transform:scale(1);}}
 @keyframes db-pop{from{opacity:0;transform:scale(1.4);}to{opacity:1;transform:scale(1);}}
+/* マップ移行バナー */
+#mapTransitionBanner{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:123;background:radial-gradient(circle,rgba(45,212,191,.25),rgba(6,3,16,.94));}
+#mapTransitionBanner .mt-inner{text-align:center;animation:db-pop .5s ease-out both;}
+#mapTransitionBanner .mt-title{font-family:var(--fd);font-size:1.3em;color:var(--teal);letter-spacing:.1em;margin-bottom:10px;}
+#mapTransitionBanner .mt-map{font-family:var(--fd);font-size:2.6em;font-weight:900;color:var(--gold);text-shadow:0 0 30px rgba(242,183,5,.6),3px 3px 0 #3a2900;margin-bottom:14px;}
+#mapTransitionBanner .mt-text{font-family:var(--fd);font-size:1.1em;color:var(--text);text-shadow:0 0 10px rgba(0,0,0,.8);}
 /* 予知の祈祷 結果表示（画面中央・大きめ） */
 #foresightBanner{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:121;background:rgba(6,3,16,.85);}
 #foresightBanner .fs-inner{text-align:center;max-width:80vw;animation:db-pop .45s ease-out both;padding:28px 36px;border-radius:16px;background:linear-gradient(180deg,rgba(36,26,77,.7),rgba(21,15,48,.85));box-shadow:0 0 50px rgba(0,0,0,.6);}
@@ -222,54 +685,158 @@ button.ability-glow{animation:abglow 1.2s ease-in-out infinite alternate;border-
 /* 戦闘超能力選択モーダル */
 #battleChoiceModal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:110;background:rgba(6,3,16,.75);}
 #counterChoiceModal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:111;background:rgba(6,3,16,.8);}
+#monsterChoiceModal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:125;background:rgba(6,3,16,.85);}
+#monsterChoiceModal .mc-img{display:block;max-width:min(70vw,360px);max-height:36vh;object-fit:contain;border-radius:8px;margin:0 auto 10px;}
 .bcm-card{background:linear-gradient(180deg,#241a4d,#150f30);border:2px solid var(--vio);border-radius:14px;padding:20px;max-width:360px;width:90%;box-shadow:0 0 40px rgba(155,107,255,.4);}
 .bcm-card button{width:100%;margin-bottom:6px;}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="top-bar" id="topBar">
-    <h1>サイキック・ロード</h1><span class="sub">超能力者たちのすごろく</span>
+<div id="titleScreen">
+  <div class="ts-bg" style="background-image:url('/img/title.png')"></div>
+  <div class="ts-veil"></div>
+  <img class="ts-openlogo" src="/img/logo.png" alt="サイキック・ロード">
+  <div class="ts-press">PRESS  TO  START</div>
+</div>
+
+<div id="homeScreen">
+  <div class="hm-bg" style="background-image:url('/img/title.png')"></div>
+  <div class="hm-veil"></div>
+  <div class="hm-char left" id="hmCharL"></div>
+  <div class="hm-char right" id="hmCharR"></div>
+  <div class="hm-focus"></div>
+  <div class="hm-inner">
+    <img class="hm-logo" src="/img/logo.png" alt="サイキック・ロード">
+    <div class="hm-menus">
+    <div class="hm-menu show" id="hmMenuMain">
+      <button class="hm-btn primary" id="homePlayBtn">ゲームを始める<span class="hm-sub">ロビーを作成、または参加する</span></button>
+      <button class="hm-btn" id="homeGuideBtn">遊び方<span class="hm-sub">役職・超能力・災害・ルール</span></button>
+    </div>
+    <div class="hm-menu hide" id="hmMenuPlay">
+      <button class="hm-btn primary" id="homeCreateBtn">ロビーを作成<span class="hm-sub">仲間を招いて対戦を始める</span></button>
+      <button class="hm-btn" id="homeJoinBtn">ロビーに参加<span class="hm-sub">IDを入力して合流する</span></button>
+      <button class="hm-btn back" id="homePlayBackBtn">戻る</button>
+    </div>
+    </div>
   </div>
+</div>
+
+<div id="awakenScreen">
+  <div class="aw-stage" id="awStage">
+    <div class="aw-glow"></div>
+    <div class="aw-drop"></div>
+    <div class="aw-flash"></div>
+    <div class="aw-ring r1"></div>
+    <div class="aw-ring r2"></div>
+    <div class="aw-ring r3"></div>
+  </div>
+</div>
+
+<div id="loadingScreen">
+  <div class="ld-blur" id="ldBlur"></div>
+  <div class="ld-bg" id="ldBg"></div>
+  <div class="ld-veil"></div>
+  <div class="ld-inner">
+    <div class="ld-cap" id="ldCap"></div>
+    <div class="ld-tip" id="ldTip"></div>
+    <div class="ld-barbg"><div class="ld-bar" id="ldBar"></div></div>
+    <div class="ld-txt" id="ldTxt">NOW LOADING</div>
+  </div>
+</div>
+
+<div id="guideScreen">
+  <div class="gd-head">
+    <button id="guideBackBtn">← 戻る</button>
+    <h2>遊び方</h2>
+  </div>
+  <div class="gd-body">
+    <div class="gd-nav" id="guideNav"></div>
+    <div class="gd-content" id="guideContent"></div>
+  </div>
+</div>
+
+<div id="gdModal">
+  <div class="gdm-card">
+    <button class="gdm-close" id="gdmCloseBtn">✕ 閉じる</button>
+    <div class="gdm-hero" id="gdmHero">
+      <div class="gdm-hero-blur" id="gdmHeroBlur"></div>
+      <div class="gdm-hero-img" id="gdmHeroImg"></div>
+    </div>
+    <div class="gdm-body">
+      <div class="gdm-name" id="gdmName"></div>
+      <div class="gdm-desc" id="gdmDesc"></div>
+    </div>
+  </div>
+</div>
+
+<div id="screenBg">
+  <div class="sb-bg" style="background-image:url('/img/title.png')"></div>
+  <div class="sb-veil"></div>
+  <div class="sb-char left" id="sbCharL"></div>
+  <div class="sb-char right" id="sbCharR"></div>
+  <div class="sb-focus"></div>
+</div>
+
+<div class="wrap">
+  <div class="top-bar hidden" id="topBar"></div>
   <div id="error"></div>
 
-  <div id="entry" class="panel">
+  <div id="entry" class="panel" style="display:none;">
+    <img class="scr-logo" src="/img/logo.png" alt="サイキック・ロード">
+    <div class="scr-sub" id="entryTitle">ロビーを作成</div>
     <div><input id="nameInput" placeholder="表示名"/></div>
-    <div style="margin-top:8px;"><button class="pri" id="createBtn">ロビーを作成</button></div>
-    <div style="margin-top:8px;"><input id="roomIdInput" placeholder="ロビーID"/><button id="joinBtn">参加</button></div>
+    <div id="entryJoinRow" style="margin-top:8px;display:none;"><input id="roomIdInput" placeholder="ロビーID"/></div>
+    <div style="margin-top:12px;display:flex;gap:8px;">
+      <button class="pri" id="entryGoBtn" style="flex:1;padding:12px;">決定</button>
+      <button id="entryBackBtn" style="padding:12px 16px;">戻る</button>
+    </div>
   </div>
 
   <div id="lobby" class="panel" style="display:none;">
-    <h2>ロビー: <span id="roomIdLabel"></span></h2>
-    <ul id="playerList"></ul>
-    <button id="readyBtn">準備完了 / 解除</button>
-    <button class="pri" id="startBtn">ゲーム開始（ホスト）</button>
-    <button id="addBotBtn" style="margin-left:8px;">Bot追加</button>
+    <img class="scr-logo" src="/img/logo.png" alt="サイキック・ロード">
+    <div class="lb-code">
+      <span class="lb-code-label">ID</span>
+      <span class="lb-code-val" id="roomIdLabel"></span>
+      <button class="lb-copy" id="copyRoomIdBtn">コピー</button>
+    </div>
+    <div class="lb-slots" id="lobbySlots"></div>
+    <ul id="playerList" style="display:none;"></ul>
+    <div class="lb-actions">
+      <button id="readyBtn">準備完了 / 解除</button>
+      <button id="addBotBtn">Bot追加</button>
+      <button class="pri" id="startBtn">ゲーム開始</button>
+    </div>
+    <p style="color:var(--dim);font-size:.74em;margin-top:12px;text-align:center;">2〜4人で対戦できます。全員が準備完了するとホストが開始できます。</p>
   </div>
 
-  <div id="roleSelect" class="panel" style="display:none;">
-    <h2>役職を選択</h2>
+  <div id="roleSelect" style="display:none;">
     <div class="carousel-wrap">
-      <button class="carousel-btn prev" id="carPrev">‹</button>
       <div class="carousel-track" id="carTrack"></div>
-      <button class="carousel-btn next" id="carNext">›</button>
+      <div class="car-edge prev" id="carPrev"><span>‹</span></div>
+      <div class="car-edge next" id="carNext"><span>›</span></div>
     </div>
     <div class="carousel-dots" id="carDots"></div>
-    <p id="roleSelectedMsg" style="color:var(--dim);font-size:.8em;margin-top:8px;"></p>
+    <p id="roleSelectedMsg" style="color:var(--dim);font-size:.8em;margin-top:8px;text-align:center;"></p>
   </div>
 
-  <div id="powerReveal" class="panel" style="display:none;">
-    <h2>覚醒した超能力</h2>
-    <p style="color:var(--dim);font-size:.82em;margin-bottom:8px;">あなたに割り当てられた超能力です。確認したら「確認完了」を押してください。</p>
-    <div id="powerRevealList"></div>
-    <button class="pri" id="confirmPowersBtn" style="margin-top:10px;">確認完了</button>
-    <p id="powerConfirmMsg" style="color:var(--dim);font-size:.8em;margin-top:6px;"></p>
+  <div id="powerReveal" style="display:none;">
+    <div class="pr-card">
+      <div class="pr-hero"><div class="pr-hero-img" id="prHeroImg"></div></div>
+      <div class="pr-body">
+        <div class="pr-name" id="prSetName"></div>
+        <p class="pr-lead">あなたに与えられた超能力です。確認したら「確認完了」を押してください。</p>
+        <div id="powerRevealList"></div>
+        <button class="pri" id="confirmPowersBtn" style="width:100%;margin-top:auto;padding:14px;">確認完了</button>
+        <p id="powerConfirmMsg" style="color:var(--dim);font-size:.78em;margin-top:8px;text-align:center;"></p>
+      </div>
+    </div>
   </div>
 
   <div id="game">
     <div class="game-grid">
       <div class="game-header">
-        <h2>ラウンド <span id="roundLabel"></span></h2>
+        <h2><span id="mapLabel" style="color:var(--gold);"></span>　ラウンド <span id="roundLabel"></span></h2>
+        <div class="next-turn" id="nextTurnBox"><span class="nt-label">NEXT</span><span class="nt-name" id="nextTurnName"></span></div>
       </div>
 
       <div class="col-left" id="colLeft"></div>
@@ -285,11 +852,10 @@ button.ability-glow{animation:abglow 1.2s ease-in-out infinite alternate;border-
           <button id="tripleDiceBtn" style="display:none;background:linear-gradient(180deg,#7c3aed,#5b21b6);border-color:var(--vio);color:#fff;">トリプルダイス（残1回）</button>
           <button id="restBtn">休息する</button>
           <button id="abilityBtn">超能力を使う ▼</button>
-          <div id="abilityPanel" style="display:none;"></div>
           <div id="battleTargets"></div>
           <button class="dan" id="endTurnBtn">ターン終了</button>
         </div>
-        <h3>ログ</h3>
+        <div class="rank-board" id="rankBoard"></div>
         <div id="log"></div>
       </div>
 
@@ -305,12 +871,34 @@ button.ability-glow{animation:abglow 1.2s ease-in-out infinite alternate;border-
   </div>
 </div>
 
+<div id="abilityPanel"><div class="ap-inner" id="abilityPanelInner"></div></div>
+
 <!-- turn banner -->
 <div id="turnBanner"><div class="tb-inner" id="turnBannerText"></div></div>
+<div id="myTurnBanner">
+  <div class="mtb-glow"></div>
+  <div class="mtb-line t"></div>
+  <div class="mtb-line b"></div>
+  <div class="mtb-text">あなたのターン</div>
+</div>
 <div id="eventBanner"><div class="ev-inner" id="eventBannerText"></div></div>
 <div id="disasterBanner"><div class="db-inner"><div class="db-title">災害発生</div><img id="disasterBannerImg" class="db-img" src=""><div class="db-text" id="disasterBannerText"></div></div></div>
 <div id="foresightBanner"><div class="fs-inner"><div class="fs-title" id="foresightTitle">予知の祈祷</div><div class="fs-text" id="foresightText"></div></div></div>
 <div id="disasterDiceOverlay"><div class="ddo-inner"><div class="ddo-intro" id="disasterDiceIntro"></div><div class="d3-wrap" id="disasterDiceWrap"></div><div class="ddo-result" id="disasterDiceResult"></div></div></div>
+<div id="mapTransitionBanner"><div class="mt-inner"><div class="mt-title" id="mtWinnerText"></div><div class="mt-map" id="mtMapText"></div><div class="mt-text">HPとサイコエナジーが全回復した。手番はゴールから遠い順になる</div></div></div>
+<div id="monsterBattleOverlay">
+  <div class="mb-inner">
+    <div class="mb-title" id="mbTitle">モンスター出現</div>
+    <img id="mbImg" class="mb-img" src="">
+    <div class="mb-ability" id="mbAbility"></div>
+    <div class="mb-row">
+      <div class="mb-side"><div class="mb-name" id="mbPlayerName"></div><div class="d3-wrap sm" id="mbPlayerDice"></div><div class="mb-roll" id="mbPlayerRoll"></div><div class="mb-bonus" id="mbPlayerBonus"></div></div>
+      <div class="mb-vs">VS</div>
+      <div class="mb-side"><div class="mb-name" id="mbMonsterName"></div><div class="d3-wrap sm" id="mbMonsterDice"></div><div class="mb-roll" id="mbMonsterRoll"></div><div class="mb-bonus" id="mbMonsterBonus"></div></div>
+    </div>
+    <div class="mb-result" id="mbResult"></div>
+  </div>
+</div>
 <div id="lvUpBanner"><div class="lvu-inner" id="lvUpText"></div></div>
 <div id="hpEffectOverlay"><div class="hp-effect-flash" id="hpFlash"></div><div class="hp-effect-num" id="hpEffectNum"></div></div>
 <div id="abilityActivationOverlay"><img id="aaImg" src="" style="display:none;"><div class="aa-text" id="aaText"></div></div>
@@ -319,6 +907,9 @@ button.ability-glow{animation:abglow 1.2s ease-in-out infinite alternate;border-
 </div>
 <div id="counterChoiceModal">
   <div class="bcm-card" id="counterChoiceBody"></div>
+</div>
+<div id="monsterChoiceModal">
+  <div class="bcm-card" id="monsterChoiceBody"></div>
 </div>
 <div id="tooltip"></div>
 <!-- overlays -->
@@ -462,13 +1053,59 @@ const TERR=[
 ];
 let cells=[];
 
-function cellXY(i){const r=Math.floor(i/COLS);let c=i%COLS;if(r%2===1)c=COLS-1-c;return{r,c};}
+// マップの形状に応じたマス座標（行・列）を返す。
+// serpentine: 蛇行 / spiral: 外周から内へ渦を巻く / zigzag: 大きく上下に振れる稲妻
+function buildCellGrid(total, layout, cols){
+  const C=cols||7;
+  const out=[];
+  if(layout==='spiral'){
+    const rows=Math.ceil(total/C);
+    // 外周から内側へ時計回りに埋める
+    const grid=[];for(let r=0;r<rows;r++){grid.push(new Array(C).fill(-1));}
+    let top=0,bottom=rows-1,left=0,right=C-1,idx=0;
+    while(top<=bottom&&left<=right&&idx<total){
+      for(let c=left;c<=right&&idx<total;c++){grid[top][c]=idx++;}
+      top++;
+      for(let r=top;r<=bottom&&idx<total;r++){grid[r][right]=idx++;}
+      right--;
+      if(top<=bottom){for(let c=right;c>=left&&idx<total;c--){grid[bottom][c]=idx++;}bottom--;}
+      if(left<=right){for(let r=bottom;r>=top&&idx<total;r--){grid[r][left]=idx++;}left++;}
+    }
+    for(let i=0;i<total;i++) out.push({r:0,c:0});
+    for(let r=0;r<rows;r++){for(let c=0;c<C;c++){const v=grid[r][c];if(v>=0&&v<total) out[v]={r,c};}}
+    return out;
+  }
+  if(layout==='zigzag'){
+    // 稲妻状: 2列ずつ進みながら上下に大きく振れる
+    const rowSpan=4; // 上下の振れ幅
+    for(let i=0;i<total;i++){
+      const c=Math.floor(i/rowSpan);
+      const within=i%rowSpan;
+      const r=(c%2===0)?within:(rowSpan-1-within);
+      out.push({r,c});
+    }
+    return out;
+  }
+  // serpentine（既定）
+  for(let i=0;i<total;i++){
+    const r=Math.floor(i/C);let c=i%C;if(r%2===1)c=C-1-c;
+    out.push({r,c});
+  }
+  return out;
+}
 function hex(ctx,cx,cy,rad){ctx.beginPath();for(let i=0;i<6;i++){const a=Math.PI/3*i-Math.PI/6;if(i===0)ctx.moveTo(cx+rad*Math.cos(a),cy+rad*Math.sin(a));else ctx.lineTo(cx+rad*Math.cos(a),cy+rad*Math.sin(a));}ctx.closePath();}
 function rng32(s){return()=>{s|=0;s=s+0x6D2B79F5|0;var t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 
 function drawMap(cv,rm,tokenPosOverride){
-  const tot=rm.boardSize+1,rows=Math.ceil(tot/COLS);
-  const W=COLS*CW+PX*2,H=rows*CH+PY*2;
+  const tot=rm.boardSize+1;
+  const layout=rm.mapLayout||'serpentine';
+  const cols=rm.mapCols||COLS;
+  const grid=buildCellGrid(tot,layout,cols);
+  // 実際に使われた行数・列数からキャンバスサイズを決める
+  let maxR=0,maxC=0;
+  grid.forEach(g=>{if(g.r>maxR)maxR=g.r;if(g.c>maxC)maxC=g.c;});
+  const rows=maxR+1,useCols=maxC+1;
+  const W=useCols*CW+PX*2,H=rows*CH+PY*2;
   cv.width=W*2;cv.height=H*2;cv.style.width=W+'px';cv.style.height=H+'px';
   const c=cv.getContext('2d');c.scale(2,2);
   // bg
@@ -478,35 +1115,117 @@ function drawMap(cv,rm,tokenPosOverride){
   const rn=rng32(77);for(let i=0;i<60;i++){c.fillStyle='rgba(200,190,255,'+(rn()*.25+.08)+')';c.beginPath();c.arc(rn()*W,rn()*H,rn()*.7+.2,0,Math.PI*2);c.fill();}
 
   cells=[];
-  for(let i=0;i<tot;i++){const{r,c:col}=cellXY(i);cells.push({x:PX+col*CW+CW/2,y:PY+r*CH+CH/2});}
+  for(let i=0;i<tot;i++){const g=grid[i];cells.push({x:PX+g.c*CW+CW/2,y:PY+g.r*CH+CH/2});}
   // path
   c.strokeStyle='rgba(155,107,255,.18)';c.lineWidth=2.5;c.setLineDash([5,4]);
   for(let i=1;i<tot;i++){c.beginPath();c.moveTo(cells[i-1].x,cells[i-1].y);c.lineTo(cells[i].x,cells[i].y);c.stroke();}
   c.setLineDash([]);
+  // ショートカット（近道/落とし穴）の線を描く
+  const scs=rm.mapShortcuts||[];
+  scs.forEach(s=>{
+    if(s.from>=tot||s.to>=tot) return;
+    const a=cells[s.from],b=cells[s.to];
+    c.save();
+    c.strokeStyle=s.backward?'rgba(239,69,118,.55)':'rgba(45,212,191,.55)';
+    c.lineWidth=3;c.setLineDash([8,5]);
+    c.beginPath();
+    // 少し弧を描いて目立たせる
+    const mx=(a.x+b.x)/2,my=(a.y+b.y)/2;
+    const dx=b.x-a.x,dy=b.y-a.y;
+    const nx=-dy,ny=dx;const len=Math.hypot(nx,ny)||1;
+    const off=Math.min(60,Math.hypot(dx,dy)*0.25);
+    c.moveTo(a.x,a.y);
+    c.quadraticCurveTo(mx+nx/len*off,my+ny/len*off,b.x,b.y);
+    c.stroke();
+    // 終点に矢印マーカー
+    c.setLineDash([]);
+    c.fillStyle=s.backward?'rgba(239,69,118,.85)':'rgba(45,212,191,.85)';
+    c.beginPath();c.arc(b.x,b.y,5,0,Math.PI*2);c.fill();
+    c.restore();
+  });
   // cells
   const R=30;
+  const terr=(rm.mapTerrain&&rm.mapTerrain.length)?rm.mapTerrain:null;
+  // 現在の手番プレイヤーが立っているマス（脈動で強調する）
+  const curP=rm.players.find(p=>p.id===rm.currentTurnId);
+  const curPos=curP?((tokenPosOverride&&tokenPosOverride[curP.id]!=null)?tokenPosOverride[curP.id]:curP.position):-1;
+  const puls=(Math.sin(boardT/380)+1)/2; // 0〜1 の脈動
   for(let i=0;i<tot;i++){
-    const{x:cx,y:cy}=cells[i];const isS=i===0,isG=i===rm.boardSize;const t=TERR[i%TERR.length];
+    const{x:cx,y:cy}=cells[i];const isS=i===0,isG=i===rm.boardSize;
+    // マップ固有の地形セットがあればそれを使う
+    let t;
+    if(terr){
+      const glyph=terr[i%terr.length];
+      t=TERR.find(x=>x.glyph===glyph)||TERR[i%TERR.length];
+    } else {
+      t=TERR[i%TERR.length];
+    }
+    const scFrom=scs.find(s=>s.from===i);
+    // ゴールマスは常時、金色の光を放つ
+    if(isG){
+      const gg=(Math.sin(boardT/500)+1)/2;
+      const gr=c.createRadialGradient(cx,cy,R*0.3,cx,cy,R*(1.5+gg*0.35));
+      gr.addColorStop(0,'rgba(242,183,5,'+(0.32+gg*0.2)+')');
+      gr.addColorStop(0.55,'rgba(242,183,5,'+(0.12+gg*0.08)+')');
+      gr.addColorStop(1,'transparent');
+      c.fillStyle=gr;c.beginPath();c.arc(cx,cy,R*(1.5+gg*0.35),0,Math.PI*2);c.fill();
+    }
+    // 手番プレイヤーのいるマスを脈動させる
+    if(i===curPos){
+      const pr=c.createRadialGradient(cx,cy,R*0.2,cx,cy,R*(1.25+puls*0.28));
+      pr.addColorStop(0,'rgba(155,107,255,'+(0.30+puls*0.22)+')');
+      pr.addColorStop(1,'transparent');
+      c.fillStyle=pr;c.beginPath();c.arc(cx,cy,R*(1.25+puls*0.28),0,Math.PI*2);c.fill();
+    }
     c.fillStyle='rgba(0,0,0,.25)';hex(c,cx+1.5,cy+1.5,R);c.fill();
     c.fillStyle=isS?'#186058':isG?'#5a4800':t.bg;hex(c,cx,cy,R);c.fill();
     const ig=c.createRadialGradient(cx-3,cy-3,1,cx,cy,R);
     ig.addColorStop(0,isS?'rgba(45,212,191,.25)':isG?'rgba(242,183,5,.35)':'rgba(255,255,255,.08)');ig.addColorStop(1,'transparent');
     c.fillStyle=ig;hex(c,cx,cy,R);c.fill();
-    c.strokeStyle=isS?'#2dd4bf':isG?'#f2b705':'rgba(155,107,255,.3)';c.lineWidth=1.2;hex(c,cx,cy,R);c.stroke();
+    // ショートカット起点は枠を強調
+    if(i===curPos){
+      c.strokeStyle='rgba(200,170,255,'+(0.65+puls*0.35)+')';c.lineWidth=2+puls*1.4;
+    } else {
+      c.strokeStyle=isS?'#2dd4bf':isG?('rgba(242,183,5,'+(0.7+((Math.sin(boardT/500)+1)/2)*0.3)+')'):(scFrom?(scFrom.backward?'#ef4576':'#2dd4bf'):'rgba(155,107,255,.3)');
+      c.lineWidth=scFrom||isG?2.4:1.2;
+    }
+    hex(c,cx,cy,R);c.stroke();
     c.save();c.translate(cx,cy);
     if(isS) drawStart(c); else if(isG) drawGoal(c); else drawTer(c,t.glyph);
     c.restore();
     c.fillStyle=isG?'#f2b705':isS?'#2dd4bf':'rgba(255,255,255,.35)';c.font='bold 7px sans-serif';c.textAlign='center';c.textBaseline='bottom';
     c.fillText(isG?'GOAL':isS?'START':i,cx,cy+R-1);
-    // 罠マーカー
+    // 罠マス: 揺らめく炎
     const trapsHere=(rm.traps||[]).filter(t=>t.position===i);
     if(trapsHere.length>0){
-      c.save();c.translate(cx,cy-R+8);
-      for(let k=0;k<Math.min(trapsHere.length,3);k++){
-        c.save();c.translate((k-Math.min(trapsHere.length,3)/2+0.5)*10,0);
-        c.fillStyle='#ff6b35';
+      const n=Math.min(trapsHere.length,3);
+      c.save();c.translate(cx,cy-R+9);
+      for(let k=0;k<n;k++){
+        const ph=boardT/150+k*2.1+i*0.7;      // 個別に揺れる位相
+        const sway=Math.sin(ph)*1.6;
+        const grow=1+Math.sin(ph*1.7)*0.22;
+        c.save();
+        c.translate((k-n/2+0.5)*10+sway,0);
+        c.scale(1,grow);
+        // 外炎
+        const fg=c.createLinearGradient(0,-7,0,5);
+        fg.addColorStop(0,'rgba(255,232,120,.95)');
+        fg.addColorStop(.45,'rgba(255,140,40,.9)');
+        fg.addColorStop(1,'rgba(190,40,20,.65)');
+        c.fillStyle=fg;
         c.beginPath();
-        c.moveTo(0,-5);c.quadraticCurveTo(3,-1,1,2);c.quadraticCurveTo(3,1,0,5);c.quadraticCurveTo(-3,1,-1,2);c.quadraticCurveTo(-3,-1,0,-5);
+        c.moveTo(0,-7);c.quadraticCurveTo(3.4,-1.5,1.2,2.6);
+        c.quadraticCurveTo(3.2,1.4,0,5.4);
+        c.quadraticCurveTo(-3.2,1.4,-1.2,2.6);
+        c.quadraticCurveTo(-3.4,-1.5,0,-7);
+        c.closePath();c.fill();
+        // 内炎
+        c.fillStyle='rgba(255,246,200,.85)';
+        c.beginPath();
+        c.moveTo(0,-3.2);c.quadraticCurveTo(1.5,-.4,.5,1.5);
+        c.quadraticCurveTo(1.3,.9,0,3.2);
+        c.quadraticCurveTo(-1.3,.9,-.5,1.5);
+        c.quadraticCurveTo(-1.5,-.4,0,-3.2);
         c.closePath();c.fill();
         c.restore();
       }
@@ -521,6 +1240,16 @@ function drawMap(cv,rm,tokenPosOverride){
     const overPos=tokenPosOverride&&tokenPosOverride[p.id]!=null?tokenPosOverride[p.id]:p.position;
     const ci=Math.min(overPos,rm.boardSize);
     const{x:cx,y:cy}=cells[ci];const o=toff[idx%4];const tx=cx+o.dx,ty=cy+o.dy;
+    const isTurn=p.id===rm.currentTurnId;
+    // 手番プレイヤーの駒は光をまとう
+    if(isTurn){
+      const gl=(Math.sin(boardT/300)+1)/2;
+      const rg=c.createRadialGradient(tx,ty,2,tx,ty,tokenSize*(0.85+gl*0.3));
+      rg.addColorStop(0,'rgba(242,183,5,'+(0.55+gl*0.3)+')');
+      rg.addColorStop(0.5,'rgba(242,183,5,'+(0.18+gl*0.12)+')');
+      rg.addColorStop(1,'transparent');
+      c.fillStyle=rg;c.beginPath();c.arc(tx,ty,tokenSize*(0.85+gl*0.3),0,Math.PI*2);c.fill();
+    }
     // icon image
     const iconKey=p.roleId&&ROLE_ICON[p.roleId]?ROLE_ICON[p.roleId]:null;
     const img=iconKey?tokenImgCache[iconKey]:null;
@@ -537,10 +1266,23 @@ function drawMap(cv,rm,tokenPosOverride){
     }
     // border
     c.beginPath();c.arc(tx,ty,tokenSize/2+1,0,Math.PI*2);
-    c.strokeStyle=p.id===rm.currentTurnId?'#f2b705':'rgba(255,255,255,.75)';
-    c.lineWidth=p.id===rm.currentTurnId?2.5:1.5;c.stroke();
-    if(p.id===rm.currentTurnId){c.beginPath();c.arc(tx,ty,tokenSize/2+4,0,Math.PI*2);c.strokeStyle='rgba(242,183,5,.3)';c.lineWidth=1.5;c.stroke();}
+    c.strokeStyle=isTurn?'#f2b705':'rgba(255,255,255,.75)';
+    c.lineWidth=isTurn?2.5:1.5;c.stroke();
+    if(isTurn){
+      const gl=(Math.sin(boardT/300)+1)/2;
+      c.beginPath();c.arc(tx,ty,tokenSize/2+4+gl*2,0,Math.PI*2);
+      c.strokeStyle='rgba(242,183,5,'+(0.45-gl*0.2)+')';c.lineWidth=1.5;c.stroke();
+    }
     if(p.incapacitatedTurns>0){c.globalAlpha=0.4;c.beginPath();c.arc(tx,ty,tokenSize/2,0,Math.PI*2);c.fillStyle='#000';c.fill();c.globalAlpha=1;}
+    // 駒の上に小さくHPバーを表示
+    if(p.maxHp>0){
+      const bw=tokenSize+4,bh=3,bx=tx-bw/2,by=ty-tokenSize/2-6;
+      const ratio=Math.max(0,Math.min(1,p.hp/p.maxHp));
+      c.fillStyle='rgba(6,3,16,.82)';
+      c.beginPath();c.roundRect?c.roundRect(bx-1,by-1,bw+2,bh+2,2):c.rect(bx-1,by-1,bw+2,bh+2);c.fill();
+      c.fillStyle=ratio>.5?'#4ade80':(ratio>.25?'#f2b705':'#ef4576');
+      c.beginPath();c.roundRect?c.roundRect(bx,by,bw*ratio,bh,1.5):c.rect(bx,by,bw*ratio,bh);c.fill();
+    }
   });
 }
 
@@ -691,6 +1433,29 @@ function showPathBattleChoice(pos, opponents, outerDone){
 }
 
 // 超能力発動アニメーション（短いバナー）は下部でsetImage対応版を定義
+/* ===== 盤面アニメーション基盤 =====
+   canvasは静止画なので、常時再描画するループを回して脈動や炎を animate する */
+let boardT=0;              // 経過時間(ms)
+let boardRafId=null;
+let boardLastDraw=0;
+function startBoardLoop(){
+  if(boardRafId!=null) return;
+  const step=(ts)=>{
+    boardRafId=requestAnimationFrame(step);
+    boardT=ts;
+    // 駒の移動アニメーション中は既存処理が描画するので二重描画しない
+    if(tokenAnim) return;
+    if(!currentRoom||!currentRoom.players) return;
+    if(ts-boardLastDraw<50) return; // 20fpsで十分
+    boardLastDraw=ts;
+    const cv=$('mapCanvas');
+    if(!cv||cv.offsetParent===null) return;
+    drawMap(cv,currentRoom,currentDisplayOverrides());
+  };
+  boardRafId=requestAnimationFrame(step);
+}
+function stopBoardLoop(){ if(boardRafId!=null){cancelAnimationFrame(boardRafId);boardRafId=null;} }
+
 function drawTer(c,g){c.globalAlpha=.5;switch(g){
   case'grass':for(let i=-1;i<=1;i++){c.strokeStyle='#7ac060';c.lineWidth=1;c.beginPath();c.moveTo(i*5,-1);c.quadraticCurveTo(i*5-1,-9,i*5+2,-12);c.stroke();}break;
   case'tree':c.fillStyle='#2a7030';c.beginPath();c.moveTo(0,-13);c.lineTo(-7,-1);c.lineTo(7,-1);c.closePath();c.fill();c.beginPath();c.moveTo(0,-9);c.lineTo(-5,1);c.lineTo(5,1);c.closePath();c.fill();c.fillStyle='#6a4a30';c.fillRect(-1.2,1,2.4,5);break;
@@ -703,15 +1468,142 @@ function drawStart(c){c.fillStyle='rgba(45,212,191,.45)';c.beginPath();c.arc(0,-
 function drawGoal(c){c.fillStyle='rgba(242,183,5,.55)';c.beginPath();for(let i=0;i<10;i++){const a=Math.PI/5*i-Math.PI/2,rr=i%2===0?9:3.5;if(i===0)c.moveTo(rr*Math.cos(a),rr*Math.sin(a)-3);else c.lineTo(rr*Math.cos(a),rr*Math.sin(a)-3);}c.closePath();c.fill();}
 
 /* ========== UI ========== */
-$('createBtn').onclick=()=>socket.emit('createRoom',{name:$('nameInput').value.trim()});
-$('joinBtn').onclick=()=>socket.emit('joinRoom',{roomId:$('roomIdInput').value.trim(),name:$('nameInput').value.trim()});
+/* --- 全ボタン共通のクリック波紋エフェクト --- */
+document.addEventListener('pointerdown',e=>{
+  const b=e.target.closest('button, .hm-btn');
+  if(!b||b.disabled) return;
+  const r=b.getBoundingClientRect();
+  const size=Math.max(r.width,r.height)*2.2;
+  const rip=document.createElement('span');
+  rip.className='btn-ripple';
+  rip.style.width=rip.style.height=size+'px';
+  rip.style.left=(e.clientX-r.left)+'px';
+  rip.style.top=(e.clientY-r.top)+'px';
+  b.appendChild(rip);
+  setTimeout(()=>rip.remove(),600);
+});
+
+/* --- タイトル / ホーム / 説明 の画面遷移 --- */
+let entryMode='create'; // 'create' | 'join'
+let titleReady=false;   // タイトル演出が終わり、進める状態か
+const TITLE_INTRO_MS=8200; // ロゴ→背景フェードインが終わるまで
+
+function showHome(){
+  setScreenBg(false);
+  $('titleScreen').style.display='none';
+  $('guideScreen').style.display='none';
+  $('entry').style.display='none';
+  pickHomeChars();
+  $('homeScreen').style.display='flex';
+  homeShowMenu('main');
+}
+// ホーム画面の左右に映すキャラクターをランダムに選ぶ
+const HOME_ROLE_IMGS=['traveler','professor','veteran','farmer','sheriff','assassin','illusionist','gambler'];
+function pickHomeChars(){
+  const pool=[...HOME_ROLE_IMGS].sort(()=>Math.random()-0.5);
+  const l=$('hmCharL'),r=$('hmCharR');
+  l.classList.remove('on');r.classList.remove('on');
+  l.style.backgroundImage="url('/img/"+pool[0]+".png')";
+  r.style.backgroundImage="url('/img/"+pool[1]+".png')";
+  setTimeout(()=>{l.classList.add('on');r.classList.add('on');},60);
+}
+function homeShowMenu(which){
+  const main=$('hmMenuMain'),play=$('hmMenuPlay');
+  if(which==='play'){
+    main.className='hm-menu hide';play.className='hm-menu show';
+  } else {
+    play.className='hm-menu hide';main.className='hm-menu show';
+  }
+}
+// ロビー/エントリー/役職選択などの画面で使う共通背景（ホーム画面と同じ演出）
+function setScreenBg(on,dim){
+  const el=$('screenBg');
+  el.classList.toggle('dim',!!dim);
+  if(!on){ el.classList.remove('on'); return; }
+  if(!el.classList.contains('on')){
+    const pool=[...HOME_ROLE_IMGS].sort(()=>Math.random()-0.5);
+    const l=$('sbCharL'),r=$('sbCharR');
+    l.classList.remove('on');r.classList.remove('on');
+    l.style.backgroundImage="url('/img/"+pool[0]+".png')";
+    r.style.backgroundImage="url('/img/"+pool[1]+".png')";
+    el.classList.add('on');
+    setTimeout(()=>{l.classList.add('on');r.classList.add('on');},60);
+  }
+}
+
+function showEntry(mode){
+  entryMode=mode;
+  $('homeScreen').style.display='none';
+  $('entryTitle').textContent=(mode==='create')?'ロビーを作成':'ロビーに参加';
+  $('entryJoinRow').style.display=(mode==='join')?'block':'none';
+  $('entryGoBtn').textContent=(mode==='create')?'作成する':'参加する';
+  setScreenBg(true);
+  $('entry').style.display='block';
+  setTimeout(()=>{$('nameInput').focus();},50);
+}
+
+// タイトル: 演出中のクリックはスキップ、演出後のクリックでホームへ
+function titleAdvance(){
+  const ts=$('titleScreen');
+  if(ts.style.display==='none') return;
+  if(!titleReady){
+    ts.classList.add('skip');
+    titleReady=true;
+    return;
+  }
+  // ホームへはロード画面を挟んで移動する
+  ts.style.display='none';
+  showLoading(2200,()=>{ showHome(); });
+}
+setTimeout(()=>{titleReady=true;},TITLE_INTRO_MS);
+$('titleScreen').onclick=titleAdvance;
+document.addEventListener('keydown',()=>{
+  const ts=$('titleScreen');
+  if(ts&&ts.style.display!=='none') titleAdvance();
+});
+
+$('homePlayBtn').onclick=()=>homeShowMenu('play');
+$('homePlayBackBtn').onclick=()=>homeShowMenu('main');
+$('homeCreateBtn').onclick=()=>showEntry('create');
+$('homeJoinBtn').onclick=()=>showEntry('join');
+$('homeGuideBtn').onclick=()=>openGuide();
+$('guideBackBtn').onclick=()=>{ $('guideScreen').style.display='none'; $('homeScreen').style.display='flex'; };
+$('entryBackBtn').onclick=()=>{ $('entry').style.display='none'; $('homeScreen').style.display='flex'; homeShowMenu('play'); };
+$('entryGoBtn').onclick=()=>{
+  const name=$('nameInput').value.trim();
+  if(!name){ $('error').style.color='var(--danger)'; $('error').textContent='表示名を入力してください'; setTimeout(()=>{$('error').textContent='';},2500); return; }
+  if(entryMode==='create'){ socket.emit('createRoom',{name}); }
+  else {
+    const roomId=$('roomIdInput').value.trim();
+    if(!roomId){ $('error').style.color='var(--danger)'; $('error').textContent='ロビーIDを入力してください'; setTimeout(()=>{$('error').textContent='';},2500); return; }
+    socket.emit('joinRoom',{roomId,name});
+  }
+};
+$('nameInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('entryGoBtn').click();});
+$('roomIdInput').addEventListener('keydown',e=>{if(e.key==='Enter')$('entryGoBtn').click();});
+$('copyRoomIdBtn').onclick=()=>{
+  const t=$('roomIdLabel').textContent;
+  if(navigator.clipboard) navigator.clipboard.writeText(t);
+  $('copyRoomIdBtn').textContent='コピー済';
+  setTimeout(()=>{$('copyRoomIdBtn').textContent='コピー';},1500);
+};
+
 $('readyBtn').onclick=()=>socket.emit('toggleReady');
 $('startBtn').onclick=()=>socket.emit('startGame');
 $('addBotBtn').onclick=()=>{console.log('addBot clicked');socket.emit('addBot');};
 $('rollBtn').onclick=()=>{socket.emit('rollDice');};
 $('tripleDiceBtn').onclick=()=>{socket.emit('activateTripleDice');socket.emit('rollDice');};
 $('restBtn').onclick=()=>socket.emit('rest');
-$('abilityBtn').onclick=()=>{const p=$('abilityPanel');const show=p.style.display==='none';p.style.display=show?'block':'none';if(show)sfxAbilityOpen();};
+$('abilityBtn').onclick=()=>{
+  const p=$('abilityPanel');
+  if(p.classList.contains('open')){p.classList.remove('open');return;}
+  p.classList.add('open');
+  sfxAbilityOpen();
+};
+// 背景（パネルの外側）をクリックしたら閉じる
+$('abilityPanel').onclick=e=>{
+  if(e.target===$('abilityPanel')) $('abilityPanel').classList.remove('open');
+};
 $('endTurnBtn').onclick=()=>socket.emit('endTurn');
 $('confirmPowersBtn').onclick=()=>socket.emit('confirmPowers');
 $('backToTopBtn').onclick=()=>{socket.emit('leaveRoom');location.reload();};
@@ -734,11 +1626,70 @@ function bar(v,m,cls){return'<div class="bar-bg"><div class="'+cls+'" style="wid
 function barXP(v,m){return'<div class="bar-bg-xp"><div class="bar-xp" style="width:'+Math.max(0,Math.min(100,v/m*100))+'%"></div></div>';}
 
 function renderLobby(r){
-  const ul=$('playerList');ul.innerHTML='';
-  r.players.forEach(p=>{const li=document.createElement('li');
-    li.innerHTML='<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+p.color+';margin-right:6px;"></span>'+(p.id===myId?'<b class="me">'+p.name+'</b>':p.name)+(p.id===r.hostId?' (ホスト)':'')+' <span class="'+(p.ready?'rdy':'nrdy')+'">'+(p.ready?'● 準備完了':'○ 未準備')+'</span>';
-    if(p.isBot&&myId===r.hostId){const rb=document.createElement('button');rb.textContent='✕';rb.style.cssText='margin-left:8px;padding:2px 6px;font-size:.7em;';rb.onclick=()=>socket.emit('removeBot',{botId:p.id});li.appendChild(rb);}
-    ul.appendChild(li);});
+  const box=$('lobbySlots');box.innerHTML='';
+  const MAXP=4;
+  r.players.forEach(p=>{
+    const d=document.createElement('div');d.className='lb-slot';
+    let badges='';
+    if(p.id===r.hostId) badges+='<span class="lb-badge host">ホスト</span>';
+    if(p.isBot) badges+='<span class="lb-badge bot">BOT</span>';
+    badges+='<span class="lb-badge '+(p.ready?'ready':'wait')+'">'+(p.ready?'準備完了':'待機中')+'</span>';
+    d.innerHTML='<span class="lb-dot" style="background:'+p.color+';color:'+p.color+'"></span>'
+      +'<span class="lb-name">'+(p.id===myId?'<b class="me">'+escHtml(p.name)+'</b>':escHtml(p.name))+'</span>'+badges;
+    if(p.isBot&&myId===r.hostId){
+      const rb=document.createElement('button');rb.textContent='✕';
+      rb.style.cssText='margin-left:6px;padding:2px 7px;font-size:.7em;flex-shrink:0;';
+      rb.onclick=()=>socket.emit('removeBot',{botId:p.id});
+      d.appendChild(rb);
+    }
+    box.appendChild(d);
+  });
+  for(let i=r.players.length;i<MAXP;i++){
+    const d=document.createElement('div');d.className='lb-slot empty';
+    d.textContent='空きスロット';
+    box.appendChild(d);
+  }
+  const isHost=myId===r.hostId;
+  $('startBtn').style.display=isHost?'':'none';
+  $('addBotBtn').style.display=(isHost&&r.players.length<MAXP)?'':'none';
+}
+
+// ゴールに近い順の順位を右上に表示する
+function renderRankBoard(r){
+  const box=$('rankBoard');
+  const sorted=[...r.players].sort((a,b)=>{
+    // ゴール済みが最優先、その後はマス目の大きい順
+    if(a.finished!==b.finished) return a.finished?-1:1;
+    return (b.position||0)-(a.position||0);
+  });
+  let h='<div class="rk-title">RANK</div>';
+  sorted.forEach((p,i)=>{
+    const remain=Math.max(0,(r.boardSize||0)-(p.position||0));
+    const posTxt=p.finished?'GOAL':('残'+remain);
+    h+='<div class="rank-row r'+(i+1)+(p.id===myId?' me-row':'')+(p.finished?' goal':'')+'">'
+      +'<span class="rk-no">'+(i+1)+'</span>'
+      +'<span class="rk-dot" style="background:'+p.color+';color:'+p.color+'"></span>'
+      +'<span class="rk-name">'+escHtml(p.name)+'</span>'
+      +'<span class="rk-pos">'+posTxt+'</span></div>';
+  });
+  box.innerHTML=h;
+}
+
+// 次に手番が回るプレイヤーを予告する
+function renderNextTurn(r){
+  const order=r.turnOrder||[];
+  if(!order.length||!r.currentTurnId){ $('nextTurnBox').style.display='none'; return; }
+  const cur=order.indexOf(r.currentTurnId);
+  if(cur<0){ $('nextTurnBox').style.display='none'; return; }
+  // 行動不能・ゴール済みを飛ばして、次に実際に動く人を探す
+  let nx=null;
+  for(let k=1;k<=order.length;k++){
+    const cand=r.players.find(p=>p.id===order[(cur+k)%order.length]);
+    if(cand&&!cand.finished&&!(cand.incapacitatedTurns>0)){ nx=cand; break; }
+  }
+  if(!nx){ $('nextTurnBox').style.display='none'; return; }
+  $('nextTurnBox').style.display='flex';
+  $('nextTurnName').textContent=nx.name;
 }
 
 let carIndex=0;
@@ -749,9 +1700,14 @@ function renderRoleSelect(r){
   const dots=$('carDots');dots.innerHTML='';
   r.roles.forEach((role,i)=>{
     const slide=document.createElement('div');slide.className='carousel-slide';
-    const img=ROLE_IMG[role.id]?'<img class="rc-img" src="/img/'+ROLE_IMG[role.id]+'.png" alt="'+role.name+'">':'';
+    const imgSrc=ROLE_IMG[role.id]?'/img/'+ROLE_IMG[role.id]+'.png':'';
+    const imgLayers=imgSrc
+      ?'<div class="rc-bgblur" style="background-image:url(\''+imgSrc+'\')"></div><img class="rc-img" src="'+imgSrc+'" alt="'+escHtml(role.name)+'"><div class="rc-shade"></div>'
+      :'<div class="rc-shade"></div>';
     const btn=me&&me.roleId?'<button disabled>選択済み</button>':'<button class="pri" onclick="socket.emit(\'selectRole\',{roleId:\''+role.id+'\'})">この役職を選ぶ</button>';
-    slide.innerHTML='<div class="rc-card">'+img+'<div class="rc-name">'+role.name+'</div><div class="rc-desc">'+role.description+'</div>'+btn+'</div>';
+    slide.innerHTML='<div class="rc-card">'+imgLayers
+      +'<div class="rc-overlay"><div class="rc-name">'+escHtml(role.name)+'</div>'
+      +'<div class="rc-desc">'+escHtml(role.description)+'</div>'+btn+'</div></div>';
     track.appendChild(slide);
     const dot=document.createElement('div');dot.className='dot'+(i===carIndex?' active':'');
     dot.onclick=()=>{carIndex=i;updateCarousel();};
@@ -765,6 +1721,15 @@ function updateCarousel(){
   $('carTrack').style.transform='translateX(-'+carIndex*100+'%)';
   const dots=$('carDots').querySelectorAll('.dot');
   dots.forEach((d,i)=>d.classList.toggle('active',i===carIndex));
+  // 表示中のスライドだけ、説明文と役職名を遅れてフェードインさせる
+  const slides=$('carTrack').querySelectorAll('.carousel-slide');
+  slides.forEach((s,i)=>{
+    s.classList.remove('reveal');
+    if(i===carIndex){
+      void s.offsetWidth; // アニメーションを再生し直す
+      s.classList.add('reveal');
+    }
+  });
 }
 $('carPrev').onclick=()=>{const len=$('carTrack').children.length;carIndex=(carIndex-1+len)%len;updateCarousel();};
 $('carNext').onclick=()=>{const len=$('carTrack').children.length;carIndex=(carIndex+1)%len;updateCarousel();};
@@ -773,30 +1738,29 @@ function renderPowerReveal(r){
   const me=r.players.find(p=>p.id===myId);
   const list=$('powerRevealList');list.innerHTML='';
   if(me&&me.superSetImage){
-    const img=document.createElement('img');
-    const src='/img/sets/'+me.superSetImage+'.png';
-    img.onerror=()=>{console.error('[画像読み込み失敗]',src);img.style.cssText='display:block;color:var(--danger);font-size:.8em;padding:8px;border:1px dashed var(--danger);text-align:center;';img.alt='画像が見つかりません: '+src;};
-    img.onload=()=>{console.log('[画像読み込み成功]',src);};
-    img.src=src;
-    img.style.cssText='width:100%;max-height:280px;object-fit:contain;border-radius:10px;margin-bottom:10px;';
-    list.appendChild(img);
-    const setTitle=document.createElement('div');
-    setTitle.style.cssText='font-family:var(--fd);color:var(--gold);font-size:1.1em;font-weight:700;text-align:center;margin-bottom:10px;';
-    setTitle.textContent='超能力セット「'+(me.superSetName||'')+'」';
-    list.appendChild(setTitle);
+    $('prHeroImg').style.backgroundImage="url('/img/sets/"+me.superSetImage+".png')";
   }
+  $('prSetName').textContent=me&&me.superSetName?me.superSetName:'覚醒した超能力';
   if(me&&me.powers){
+    // 現在使える段階のみを表で示す（進化後は伏せる）
+    let h='<div class="pw-line"><table class="pw-table"><thead><tr>'
+      +'<th>名称</th><th>PSY</th><th>タイミング</th><th>効果</th></tr></thead><tbody>';
     me.powers.forEach(pw=>{
-      const d=document.createElement('div');d.className='pw-card';
       if(pw.locked){
-        d.style.opacity='.5';
-        d.innerHTML='<div class="pw-name">'+pw.name+' <span style="font-size:.7em;color:var(--dim);">(未解放)</span></div><div class="pw-desc">'+pw.description+'</div>';
+        h+='<tr style="opacity:.55;">'
+          +'<td class="pw-nm" style="color:var(--dim);">'+escHtml(pw.name)+'</td>'
+          +'<td class="pw-cost">—</td><td class="pw-tm">—</td>'
+          +'<td class="pw-ef" style="color:var(--dim);">'+escHtml(pw.description)+'</td></tr>';
       } else {
-        const typeTag=pw.type==='counter'?'<span style="color:#ff8a8a;">[カウンター]</span>':'';
-        d.innerHTML='<div class="pw-name">'+pw.name+' <span style="font-size:.75em;color:var(--teal);">コスト:'+pw.cost+'</span> <span style="font-size:.7em;color:var(--dim);">['+timingLabel(pw.timing)+']</span> '+typeTag+'</div><div class="pw-desc">'+pw.description+'</div>';
+        h+='<tr>'
+          +'<td class="pw-nm">'+escHtml(pw.name)+'</td>'
+          +'<td class="pw-cost">'+pw.cost+'</td>'
+          +'<td class="pw-tm">'+timingLabel(pw.timing)+(pw.type==='counter'?'<br><span style="color:#ff8aa8;">カウンター</span>':'')+'</td>'
+          +'<td class="pw-ef">'+escHtml(pw.description)+'</td></tr>';
       }
-      list.appendChild(d);
     });
+    h+='</tbody></table></div>';
+    list.innerHTML=h;
   }
   const confirmed=r.players.filter(p=>p.powersConfirmed).length;
   $('powerConfirmMsg').textContent='確認済み: '+confirmed+' / '+r.players.length+' 人';
@@ -860,12 +1824,38 @@ function renderGameMapOnly(r){
   drawMap($('mapCanvas'),r,currentDisplayOverrides());
 }
 
+// 選べる行動が何も残っていない場合、自動的にターンを終了する。
+// アニメーション中は待ち、二重送信しないようフラグで制御する。
+let autoEndTimer=null;
+let autoEndArmed=false;   // このターンで自動終了を送信済みか
+function resetAutoEnd(){ clearTimeout(autoEndTimer); autoEndArmed=false; }
+function maybeAutoEndTurn(){
+  if(autoEndArmed) return;
+  if(!currentRoom||currentRoom.phase!=='playing') return;
+  const me=currentRoom.players.find(p=>p.id===myId);
+  if(!me||currentRoom.currentTurnId!==myId||!me.actionTaken) return;
+  clearTimeout(autoEndTimer);
+  autoEndTimer=setTimeout(()=>{
+    // 演出やパス上戦闘の選択が終わるまで待つ
+    if(animBusy||pathBattleUI||tokenAnim){ autoEndTimer=setTimeout(maybeAutoEndTurn,600); return; }
+    const now=currentRoom&&currentRoom.players.find(p=>p.id===myId);
+    if(!now||currentRoom.currentTurnId!==myId||!now.actionTaken) return;
+    autoEndArmed=true;
+    socket.emit('endTurn');
+  },900);
+}
+
 function renderGame(r){
   renderGameMapOnly(r);
-  // left column — player cards
+  // left column — player cards（手番順に並べる。マップ移行で順番が入れ替わった場合も追従する）
   const left=$('colLeft');left.innerHTML='';
-  r.players.forEach(p=>{
-    const d=document.createElement('div');d.className='p-card';d.dataset.playerId=p.id;
+  const orderedPlayers=(r.turnOrder&&r.turnOrder.length)
+    ? r.turnOrder.map(id=>r.players.find(p=>p.id===id)).filter(Boolean)
+    : r.players;
+  orderedPlayers.forEach(p=>{
+    const d=document.createElement('div');
+    d.className='p-card'+(p.id===r.currentTurnId?' turn-now':'');
+    d.dataset.playerId=p.id;
     let badges='';
     if(p.id===r.currentTurnId) badges+='<span class="tb">手番</span>';
     if(p.incapacitatedTurns>0) badges+='<span class="db">不能('+p.incapacitatedTurns+')</span>';
@@ -876,13 +1866,16 @@ function renderGame(r){
       +(p.id===myId?' / '+(p.powers.map(pw=>pw.name==='???'?pw.name:(pw.locked?'<span style="color:var(--dim);">'+pw.name+'(未解放)</span>':'<span class="role-tip" data-tip="'+escHtml(pw.description+'\nコスト: PSY '+pw.cost+' ['+timingLabel(pw.timing)+']')+'">'+pw.name+(pw.evolved?' ★':'')+'</span>')).join(', ')||'-'):' / ???')+'</div>'
       +'<div class="sr hp-row-val">HP '+p.hp+'/'+p.maxHp+'</div>'+bar(p.hp,p.maxHp,'bar-hp')
       +'<div class="sr en-row-val">PSY '+p.energy+'/'+p.maxEnergy+'</div>'+bar(p.energy,p.maxEnergy,'bar-en')
-      +'<div class="sr" style="color:var(--gold);">Lv.'+(p.level||0)+' EXP '+(p.xp||0)+'/'+(p.xpToNext||80)+'</div>'+barXP(p.xp||0,p.xpToNext||80)
-      +'<div class="sr">位置 '+p.position+'/'+r.boardSize+'</div>';
+      +'<div class="sr" style="color:var(--gold);">Lv.'+(p.level||0)+' EXP '+(p.xp||0)+'/'+(p.xpToNext||80)+'</div>'+barXP(p.xp||0,p.xpToNext||80);
     left.appendChild(d);
   });
   $('roundLabel').textContent=r.roundNumber;
+  $('mapLabel').textContent=(r.mapName||'')+' ('+(r.currentMapIndex||1)+'/'+(r.totalMaps||4)+')';
+  renderRankBoard(r);
+  renderNextTurn(r);
   // right column — controls
   const isMyTurn=r.currentTurnId===myId;
+  if(!isMyTurn){ resetAutoEnd(); $('abilityPanel').classList.remove('open'); }
   $('myTurnControls').style.display=isMyTurn?'block':'none';
   if(isMyTurn){
     const me=r.players.find(p=>p.id===myId);
@@ -894,8 +1887,18 @@ function renderGame(r){
     // 奇術師のトリプルダイスボタン
     $('tripleDiceBtn').style.display=(!acted&&me.canTripleDice)?'block':'none';
     // 超能力パネル更新
-    const ap=$('abilityPanel');ap.innerHTML='';
+    const ap=$('abilityPanelInner');ap.innerHTML='';
     let anyUsable=false;
+    // ヘッダー（タイトル・残PSY・閉じる）
+    const head=document.createElement('div');
+    head.className='ap-head';
+    head.innerHTML='<span class="ap-title">超能力を使う</span>'
+      +'<span class="ap-psy">PSY '+(me?me.energy:0)+' / '+(me?me.maxEnergy:0)+'</span>';
+    const closeBtn=document.createElement('button');
+    closeBtn.className='ap-close';closeBtn.textContent='✕';
+    closeBtn.onclick=()=>{$('abilityPanel').classList.remove('open');};
+    head.appendChild(closeBtn);
+    ap.appendChild(head);
     if(me&&me.powers){
       const usedT=me.usedTimings||[];
       me.powers.forEach(pw=>{
@@ -908,22 +1911,30 @@ function renderGame(r){
         card.className='ab-card';
         let tags='';
         if(pw.evolved) tags+='<span class="ab-tag evo">進化済</span>';
-        card.innerHTML='<div><span class="ab-name">'+pw.name+'</span><span class="ab-cost">PSY '+pw.cost+'</span> <span style="font-size:.65em;color:var(--dim);">['+timingLabel(pw.timing)+']</span>'+tags+'</div><div class="ab-desc">'+pw.description+'</div>';
+        if(pw.isCopy) tags+='<span class="ab-tag copy">コピー</span>';
+        card.innerHTML='<div class="ab-top"><span class="ab-name">'+escHtml(pw.name)+'</span>'
+          +'<span class="ab-cost">PSY '+pw.cost+'</span>'
+          +'<span class="ab-timing">'+timingLabel(pw.timing)+'</span>'+tags+'</div>'
+          +'<div class="ab-desc">'+escHtml(pw.description)+'</div>';
         card.onclick=()=>{
           sfxAbilityPick();sfxMagic();
+          $('abilityPanel').classList.remove('open');
           if(pw.requiresTarget){
-            ap.style.display='none';
             showTargetPicker(pw);
           } else if(pw.requiresHistoryChoice){
-            ap.style.display='none';
             showCopyPicker(pw);
           } else {
             socket.emit('useAbility',{powerId:pw.lineId});
-            ap.style.display='none';
           }
         };
         ap.appendChild(card);
       });
+    }
+    if(!anyUsable){
+      const em=document.createElement('div');
+      em.className='ap-empty';
+      em.textContent='いま使える超能力はありません';
+      ap.appendChild(em);
     }
     // 超能力ボタンは常に表示、使える超能力がある場合は発光
     $('abilityBtn').style.display='block';
@@ -938,22 +1949,379 @@ function renderGame(r){
       others.forEach(o=>{const b=document.createElement('button');b.className='dan';b.textContent=o.name+'に戦闘を仕掛ける';
         b.onclick=()=>{socket.emit('proposeBattle',{opponentId:o.id});};
         bt.appendChild(b);});
+      // 行動済みで、超能力も戦闘も選べないなら自動でターンを終了する
+      if(acted&&!anyUsable&&others.length===0){
+        maybeAutoEndTurn();
+      }
     }
   }
   const lg=$('log');lg.innerHTML=r.log.map(l=>'<div>'+l+'</div>').join('');lg.scrollTop=lg.scrollHeight;
 }
 
+/* ===== 超能力覚醒前の演出（暗闇に雫が落ちる） ===== */
+const AWAKEN_MS=6300;
+function showAwaken(onDone){
+  const sc=$('awakenScreen'),stage=$('awStage');
+  // 前回の粒子を消してから作り直す（アニメーションを再生し直すため）
+  stage.querySelectorAll('.aw-mote').forEach(e=>e.remove());
+  for(let i=0;i<18;i++){
+    const m=document.createElement('div');
+    m.className='aw-mote';
+    m.style.left=(50+(Math.random()*46-23))+'%';
+    const dur=(1.6+Math.random()*1.1).toFixed(2);
+    const delay=(2.5+Math.random()*0.9).toFixed(2);
+    m.style.animation='aw-mote '+dur+'s ease-out '+delay+'s forwards';
+    stage.appendChild(m);
+  }
+  // CSSアニメーションを最初から再生させる
+  sc.style.display='none';void sc.offsetWidth;
+  sc.style.display='flex';
+  setTimeout(()=>{
+    sc.style.display='none';
+    if(onDone)onDone();
+  },AWAKEN_MS);
+}
+
+/* ========== ロード画面 ========== */
+const LOAD_IMAGES=[
+  {src:'/img/title.png',cap:'サイキック・ロード'},
+  {src:'/img/traveler.png',cap:'旅人'},{src:'/img/professor.png',cap:'教授'},
+  {src:'/img/veteran.png',cap:'退役軍人'},{src:'/img/farmer.png',cap:'農夫'},
+  {src:'/img/sheriff.png',cap:'保安官'},{src:'/img/assassin.png',cap:'アサシン'},
+  {src:'/img/illusionist.png',cap:'奇術師'},{src:'/img/gambler.png',cap:'ギャンブラー'},
+  {src:'/img/sets/set_fire.png',cap:'炎の超能力'},{src:'/img/sets/set_wind.png',cap:'風の超能力'},
+  {src:'/img/sets/set_mind.png',cap:'精神の超能力'},{src:'/img/sets/set_time.png',cap:'時間の超能力'},
+  {src:'/img/sets/set_imitation.png',cap:'模倣の超能力'},{src:'/img/sets/set_prayer.png',cap:'祈祷の超能力'},
+  {src:'/img/monsters/monster_skeleton.png',cap:'リベンジャースケルトン'},
+  {src:'/img/monsters/monster_snake.png',cap:'マインドスネーク'},
+  {src:'/img/monsters/monster_dog.png',cap:'チェインドッグ'},
+  {src:'/img/monsters/monster_seekhead.png',cap:'シークヘッド'},
+  {src:'/img/monsters/monster_goblin.png',cap:'ゴブリンアサルト'},
+  {src:'/img/monsters/monster_crow.png',cap:'クロウドクロウ'},
+  {src:'/img/disasters/disaster_arawa.png',cap:'災害: 荒波'},
+  {src:'/img/disasters/disaster_jiware.png',cap:'災害: 地割れ'},
+  {src:'/img/disasters/disaster_oohiji.png',cap:'災害: 大火事'},
+  {src:'/img/disasters/disaster_taifu.png',cap:'災害: 台風'},
+  {src:'/img/disasters/disaster_gouu.png',cap:'災害: 豪雨'},
+  {src:'/img/disasters/disaster_ameame.png',cap:'災害: 飴の雨'},
+];
+const LOAD_TIPS=[
+  '同じマスに止まった相手には戦闘を仕掛けられる。移動の途中でも仕掛けられる。',
+  '超能力は「移動時」「戦闘時」「いつでも」で使えるタイミングが決まっている。',
+  'レベルが上がると超能力が進化し、より強力な効果に変わる。',
+  'マップは全4種。最後のマップで最初にゴールした者が優勝となる。',
+  '災害は1マップにつき1〜3回、ランダムなターンの終わりに発生する。',
+  '祈祷の超能力なら、災害が近いかどうかを事前に知ることができる。',
+  '模倣の超能力は、同じマスで他人が使った超能力をコピーできる。',
+  'HPが0になると数ターン行動不能になる。無理は禁物。',
+  '休息を選ぶとHPとサイコエナジーが多めに回復する。',
+  '近道に乗れば一気に前進できるが、落とし穴に落ちると大きく後退する。',
+  'モンスターを倒すと経験値が手に入る。戦闘前に超能力を使うか選べる。',
+  'マップで最初にゴールすると、大きな経験値ボーナスが手に入る。',
+];
+let ldTimer=null,ldSwapTimer=null;
+
+function showLoading(durationMs,onDone){
+  const pick=LOAD_IMAGES[Math.floor(Math.random()*LOAD_IMAGES.length)];
+  const tip=LOAD_TIPS[Math.floor(Math.random()*LOAD_TIPS.length)];
+  const bg=$('ldBg'),blur=$('ldBlur');
+  bg.classList.remove('on');blur.classList.remove('on');
+  bg.style.backgroundImage="url('"+pick.src+"')";
+  blur.style.backgroundImage="url('"+pick.src+"')";
+  $('ldCap').textContent=pick.cap;
+  $('ldTip').textContent='TIPS: '+tip;
+  $('ldBar').style.width='0%';
+  $('loadingScreen').style.display='flex';
+  // 画像の読み込みを待ってからフェードイン
+  const im=new Image();
+  const reveal=()=>{bg.classList.add('on');blur.classList.add('on');};
+  im.onload=reveal;im.onerror=reveal;
+  im.src=pick.src;
+
+  const start=Date.now();
+  clearInterval(ldTimer);
+  ldTimer=setInterval(()=>{
+    const p=Math.min(100,(Date.now()-start)/durationMs*100);
+    $('ldBar').style.width=p+'%';
+    if(p>=100){
+      clearInterval(ldTimer);
+      $('loadingScreen').style.display='none';
+      if(onDone)onDone();
+    }
+  },80);
+}
+
+/* ========== 説明画面 ========== */
+let guideData=null;
+const GUIDE_SECTIONS=[
+  {id:'rules',label:'ゲームの流れ',img:'/img/title.png',pos:'center 30%'},
+  {id:'roles',label:'役職',img:'/img/traveler.png',pos:'center 12%'},
+  {id:'powers',label:'超能力',img:'/img/sets/set_fire.png',pos:'center 30%'},
+  {id:'monsters',label:'モンスター',img:'/img/monsters/monster_skeleton.png',pos:'center 22%'},
+  {id:'disasters',label:'災害',img:'/img/disasters/disaster_taifu.png',pos:'center 40%'},
+  {id:'maps',label:'マップ',img:'/img/disasters/disaster_jiware.png',pos:'center 40%'},
+];
+
+function openGuide(){
+  $('homeScreen').style.display='none';
+  $('guideScreen').style.display='flex';
+  const nav=$('guideNav');
+  if(!nav.dataset.built){
+    GUIDE_SECTIONS.forEach((s,i)=>{
+      const b=document.createElement('button');
+      b.dataset.sec=s.id;
+      b.innerHTML='<span class="gdn-img" style="background-image:url(\''+s.img+'\');background-position:'+s.pos+'"></span>'
+        +'<span class="gdn-label">'+s.label+'</span>';
+      b.onclick=()=>selectGuideSection(s.id);
+      nav.appendChild(b);
+    });
+    nav.dataset.built='1';
+  }
+  if(!guideData){
+    $('guideContent').innerHTML='<p style="color:var(--dim);">読み込み中…</p>';
+    fetch('/api/guide').then(r=>r.json()).then(d=>{guideData=d;selectGuideSection('rules');})
+      .catch(err=>{console.error(err);$('guideContent').innerHTML='<p style="color:var(--danger);">情報の読み込みに失敗しました</p>';});
+  } else {
+    selectGuideSection('rules');
+  }
+}
+
+function selectGuideSection(id){
+  $('guideNav').querySelectorAll('button').forEach(b=>{b.classList.toggle('active',b.dataset.sec===id);});
+  const c=$('guideContent');
+  if(!guideData){c.innerHTML='';return;}
+  c.scrollTop=0;
+  if(id==='rules') c.innerHTML=buildGuideRules();
+  else if(id==='roles') c.innerHTML=buildGuideRoles();
+  else if(id==='powers') c.innerHTML=buildGuidePowers();
+  else if(id==='monsters') c.innerHTML=buildGuideMonsters();
+  else if(id==='disasters') c.innerHTML=buildGuideDisasters();
+  else if(id==='maps') c.innerHTML=buildGuideMaps();
+}
+
+function timingJa(t){return t==='battle'?'戦闘時':t==='beforeMove'?'移動時':'いつでも';}
+// 余白を作らず、カードいっぱいに画像を表示する
+function gdThumb(src){
+  return '<div class="gd-thumb"><div class="gd-thumb-img" style="background-image:url(\''+src+'\')"></div></div>';
+}
+// 詳細モーダル（画像は全体が見えるようにし、背後にぼかしを敷く）
+function openGdModal(src,name,descHtml){
+  $('gdmHeroBlur').style.backgroundImage="url('"+src+"')";
+  $('gdmHeroImg').style.backgroundImage="url('"+src+"')";
+  $('gdmName').textContent=name;
+  $('gdmDesc').innerHTML=descHtml;
+  $('gdModal').style.display='flex';
+  $('gdmDesc').parentElement.scrollTop=0;
+}
+$('gdmCloseBtn').onclick=()=>{$('gdModal').style.display='none';};
+$('gdModal').onclick=e=>{if(e.target===$('gdModal'))$('gdModal').style.display='none';};
+document.addEventListener('keydown',e=>{if(e.key==='Escape')$('gdModal').style.display='none';});
+// 説明画面のカードクリックでモーダルを開く（内容はdata属性から取得）
+$('guideContent').addEventListener('click',e=>{
+  const card=e.target.closest('.gd-card');
+  if(!card||!card.dataset.img) return;
+  openGdModal(card.dataset.img,card.dataset.name,decodeURIComponent(card.dataset.detail||''));
+});
+
+function buildGuideRules(){
+  const k=guideData.constants;
+  return '<h3 class="gd-sec-title">ゲームの流れ</h3>'
+    +'<p class="gd-sec-lead">超能力者となって全'+k.maxMaps+'マップを駆け抜け、最後のマップで一番にゴールした者が勝者となります。</p>'
+    +'<div class="gd-rule"><h4>1. 準備</h4><p>ロビーに集まり、それぞれ役職を1つ選びます。その後、6種類ある超能力セットのうち1つがランダムに与えられます。</p></div>'
+    +'<div class="gd-rule"><h4>2. 自分の手番</h4><ul>'
+      +'<li>「移動時」の超能力を使うか決める</li>'
+      +'<li>サイコロを振って進む（または休息を選び、HPとサイコエナジーを多めに回復する）</li>'
+      +'<li>止まったマスの効果が発生する</li>'
+      +'<li>ターンを終了する</li>'
+    +'</ul></div>'
+    +'<div class="gd-rule"><h4>3. 戦闘</h4><p>同じマスにいる相手には戦闘を仕掛けられます。移動の途中で通り過ぎる相手にも仕掛けられます。双方が戦闘用の超能力を選んだあと、サイコロで勝負し、負けた側が'+k.battleDamage+'ダメージを受けます（役職や超能力で増減します）。</p></div>'
+    +'<div class="gd-rule"><h4>4. モンスター</h4><p>マスの効果でモンスターと遭遇することがあります。1回のサイコロ勝負で決着し、勝てば経験値、負ければダメージを受けます。戦う前に超能力を使うか選べます。</p></div>'
+    +'<div class="gd-rule"><h4>5. 成長</h4><p>移動・戦闘・超能力の使用で経験値が貯まり、レベルが上がると超能力が進化します。レベルは最大'+k.maxLevel+'で、必要経験値は'+k.levelXp.slice(1).join(' / ')+'です。Lv3ではHPとサイコエナジーの上限も上がります。</p></div>'
+    +'<div class="gd-rule"><h4>6. 災害</h4><p>1マップにつき'+k.disastersPerMapMin+'〜'+k.disastersPerMapMax+'回、全員を巻き込む災害が起こります。序盤2ラウンドの間は発生しません。</p></div>'
+    +'<div class="gd-rule"><h4>7. マップの移行</h4><p>誰かがゴールするとそのマップは終了し、全員が次のマップの出発点へ移ります。HPとサイコエナジーは全回復し、レベルと経験値は引き継がれます。次のマップの手番順はゴールから遠い人が先になり、一番乗りした人は最後になります。</p></div>'
+    +'<div class="gd-rule"><h4>8. 勝敗</h4><p>最終マップ（マップ'+k.maxMaps+'）で最初にゴールした者の勝利です。HPが0になると'+k.incapacitatedTurns+'ターン行動不能になるため、体力管理も重要です。</p></div>'
+    +'<div class="gd-rule"><h4>経験値の目安</h4><ul>'
+      +'<li>1マス移動: '+k.xpPerTile+'</li><li>超能力の発動: '+k.xpAbility+'</li>'
+      +'<li>戦闘 勝利/引分/敗北: '+k.xpBattleWin+' / '+k.xpBattleDraw+' / '+k.xpBattleLose+'</li>'
+      +'<li>マップ一番乗り: '+k.xpMapFirst+'</li>'
+    +'</ul></div>';
+}
+
+// 役職のパッシブからステータス表と特殊効果テキストを組み立てる
+function buildRoleStats(p,constants){
+  const baseHp=constants.baseMaxHp||10, baseEn=constants.baseMaxEnergy||6, baseDmg=constants.battleDamage||3;
+  const st=[];
+  const row=(k,v,cls)=>{st.push('<div class="rl-stat"><span class="rl-k">'+k+'</span><span class="rl-v '+cls+'">'+v+'</span></div>');};
+  // HP上限
+  const hp=baseHp+(p.maxHpBonus||0);
+  row('HP上限',hp+(p.maxHpBonus?' (+'+p.maxHpBonus+')':''),p.maxHpBonus?'up':'norm');
+  // PSY上限
+  const en=baseEn+(p.maxEnergyBonus||0);
+  row('PSY上限',en+(p.maxEnergyBonus?' (+'+p.maxEnergyBonus+')':''),p.maxEnergyBonus?'up':'norm');
+  // ターン回復
+  row('HP回復/ターン',(1+(p.hpRegenBonus||0)),p.hpRegenBonus?'up':'norm');
+  row('PSY回復/ターン',(1+(p.energyRegenBonus||0)),p.energyRegenBonus?'up':'norm');
+  // 与ダメージ
+  const dmg=baseDmg+(p.battleDamageBonus||0);
+  row('与ダメージ',dmg+(p.battleDamageBonus?' (+'+p.battleDamageBonus+')':''),p.battleDamageBonus?'up':'norm');
+
+  // ステータス表に載せない効果は、すべて文章で個別に説明する
+  const sp=[];
+  if(p.moveDiceBonus) sp.push('<b>健脚</b> — 移動時のサイコロの目が+'+p.moveDiceBonus+'される');
+  const atk=(p.battleDiceBonus||0)+(p.attackDiceBonus||0);
+  const def=(p.battleDiceBonus||0)+(p.defendDiceBonus||0)-(p.defendDicePenalty||0);
+  if(atk||def){
+    if(atk===def&&atk>0) sp.push('<b>戦巧者</b> — 戦闘時のサイコロの目が+'+atk+'される');
+    else{
+      if(atk>0) sp.push('<b>先制の勘</b> — 自分から戦闘を仕掛けた時、サイコロの目が+'+atk+'される');
+      if(def>0) sp.push('<b>迎撃の構え</b> — 相手から戦闘を仕掛けられた時、サイコロの目が+'+def+'される');
+      if(def<0) sp.push('<b>守りの薄さ</b> — 相手から戦闘を仕掛けられた時、サイコロの目が'+def+'される');
+    }
+  }
+  if(p.battleDamageReduction) sp.push('<b>頑健</b> — 戦闘で受けるダメージが'+p.battleDamageReduction+'軽減される');
+  if(p.xpMultiplier) sp.push('<b>探究心</b> — 獲得する経験値が'+p.xpMultiplier+'倍になる（端数切り上げ）');
+  if(p.badEventResist) sp.push('<b>危険回避</b> — マスの不利な効果とモンスター遭遇を50%の確率で回避する');
+  if(p.rerollPerTurn) sp.push('<b>振り直し</b> — 1ターンに1回、サイコロを振り直せる');
+  if(p.tripleDicePerMap) sp.push('<b>三連ダイス</b> — 1マップに1回、サイコロを3個同時に振れる');
+  if(p.gamblerEffect) sp.push('<b>賭博の性</b> — 出目が奇数なら-3、偶数なら+3される');
+  return {statsHtml:'<div class="rl-stats">'+st.join('')+'</div>',
+          specialHtml:sp.length?('<div class="rl-special">'+sp.join('<br>')+'</div>'):''};
+}
+
+function buildGuideRoles(){
+  let h='<h3 class="gd-sec-title">役職</h3><p class="gd-sec-lead">ゲーム開始時に選ぶ8種類の役職。基礎値はHP'+guideData.constants.baseMaxHp+'／PSY'+guideData.constants.baseMaxEnergy+'／与ダメージ'+guideData.constants.battleDamage+'で、役職ごとに補正がかかります。</p>';
+  guideData.roles.forEach(r=>{
+    const img='/img/'+r.id+'.png';
+    const {statsHtml,specialHtml}=buildRoleStats(r.passive||{},guideData.constants);
+    const body=statsHtml+specialHtml;
+    h+='<div class="gd-card" data-img="'+img+'" data-name="'+escHtml(r.name)+'" data-detail="'+encodeURIComponent(body)+'">'+gdThumb(img)
+      +'<div class="gd-card-body"><div class="gd-card-name">'+escHtml(r.name)+'</div>'+body+'</div></div>';
+  });
+  return h;
+}
+
+function buildGuidePowers(){
+  let h='<h3 class="gd-sec-title">超能力</h3><p class="gd-sec-lead">6種類のセットから1つがランダムに与えられます。各セットは複数の系統を持ち、レベルが上がると解放・進化します。</p>';
+  guideData.superSets.forEach(s=>{
+    const img='/img/sets/'+s.image+'.png';
+    let inner='';
+    s.lines.forEach(line=>{
+      const stages=line.stages;
+      // 系統名は初期段階の名前を使う
+      inner+='<div class="pw-line">'
+        +'<div class="pw-line-head">'+escHtml(stages[0].name)+' 系統</div>'
+        +'<table class="pw-table"><thead><tr>'
+        +'<th>名称</th><th>習得</th><th>PSY</th><th>タイミング</th><th>効果</th>'
+        +'</tr></thead><tbody>';
+      stages.forEach((st,i)=>{
+        const unlock=(i===0)
+          ?(st.level>0?('Lv.'+st.level+' 解放'):'初期習得')
+          :('Lv.'+st.level+' 進化');
+        inner+='<tr>'
+          +'<td class="pw-nm">'+escHtml(st.name)+'</td>'
+          +'<td class="pw-lv">'+unlock+'</td>'
+          +'<td class="pw-cost">'+st.cost+'</td>'
+          +'<td class="pw-tm">'+timingJa(st.timing)+(st.type==='counter'?'<br><span style="color:#ff8aa8;">カウンター</span>':'')+'</td>'
+          +'<td class="pw-ef">'+escHtml(st.description)+'</td>'
+          +'</tr>';
+      });
+      inner+='</tbody></table></div>';
+    });
+    h+='<div class="gd-card wide" data-img="'+img+'" data-name="'+escHtml(s.name)+'" data-detail="'+encodeURIComponent(inner)+'">'+gdThumb(img)
+      +'<div class="gd-card-body"><div class="gd-card-name">'+escHtml(s.name)+'</div>'+inner+'</div></div>';
+  });
+  return h;
+}
+
+function buildGuideMonsters(){
+  let h='<h3 class="gd-sec-title">モンスター</h3><p class="gd-sec-lead">マスの効果で遭遇します。1回のサイコロ勝負で決着し、それぞれ固有の能力を持っています。</p>';
+  guideData.monsters.forEach(m=>{
+    const img='/img/monsters/'+m.image+'.png';
+    const body='<div class="gd-card-desc"><b style="color:var(--teal);">'+escHtml(m.abilityName)+'</b> — '+escHtml(m.abilityDesc)+'</div>'
+      +'<div class="gd-tags"><span class="gd-tag">ダイス '+(m.diceBonus>=0?'+':'')+m.diceBonus+'</span>'
+      +'<span class="gd-tag dmg">ダメージ '+m.damage+'</span>'
+      +'<span class="gd-tag gold">経験値 '+m.xp+'</span></div>';
+    h+='<div class="gd-card wide" data-img="'+img+'" data-name="'+escHtml(m.name)+'" data-detail="'+encodeURIComponent(body)+'">'+gdThumb(img)
+      +'<div class="gd-card-body"><div class="gd-card-name">'+escHtml(m.name)+'</div>'+body+'</div></div>';
+  });
+  return h;
+}
+
+function buildGuideDisasters(){
+  const k=guideData.constants;
+  let h='<h3 class="gd-sec-title">災害</h3><p class="gd-sec-lead">1マップにつき'+k.disastersPerMapMin+'〜'+k.disastersPerMapMax+'回、ランダムなターンの終わりに発生し、原則として全員が巻き込まれます。祈祷の超能力なら事前に予知でき、自ら引き起こすこともできます。</p>';
+  guideData.disasters.forEach(d=>{
+    const img='/img/disasters/'+d.image+'.png';
+    const detail='<p style="line-height:1.9;">'+escHtml(d.description)+'</p>';
+    h+='<div class="gd-card wide" data-img="'+img+'" data-name="'+escHtml(d.name)+'" data-detail="'+encodeURIComponent(detail)+'">'+gdThumb(img)
+      +'<div class="gd-card-body"><div class="gd-card-name">'+escHtml(d.name)+'</div>'
+      +'<div class="gd-card-desc">'+escHtml(d.description)+'</div></div></div>';
+  });
+  return h;
+}
+
+function buildGuideMaps(){
+  const layoutJa={serpentine:'蛇行',spiral:'渦巻き',zigzag:'稲妻'};
+  let h='<h3 class="gd-sec-title">マップ</h3><p class="gd-sec-lead">全'+guideData.constants.maxMaps+'マップを順に進みます。盤面の形・マスの効果・近道の配置がそれぞれ異なります。</p>';
+  guideData.maps.forEach(m=>{
+    const fwd=m.shortcuts.filter(s=>!s.backward).length;
+    const bwd=m.shortcuts.filter(s=>s.backward).length;
+    h+='<div class="gd-rule"><h4>マップ'+m.index+'　'+escHtml(m.name)+'</h4>'
+      +'<p>'+escHtml(m.description)+'</p>'
+      +'<div class="gd-tags"><span class="gd-tag">'+m.boardSize+'マス</span>'
+      +'<span class="gd-tag">'+(layoutJa[m.layout]||m.layout)+'型</span>'
+      +(fwd?'<span class="gd-tag">近道 '+fwd+'</span>':'')
+      +(bwd?'<span class="gd-tag dmg">落とし穴 '+bwd+'</span>':'')
+      +'</div></div>';
+  });
+  return h;
+}
+
+let seenRoleSelect=false;
+let seenPowerReveal=false;
+
 socket.on('roomUpdate',r=>{
   currentRoom=r;
+  // ロビーに入った時点でタイトル/ホーム/入力画面は閉じる
+  $('titleScreen').style.display='none';
+  $('homeScreen').style.display='none';
+  $('guideScreen').style.display='none';
   $('entry').style.display='none';
+
+  // 役職選択に初めて進むタイミングでロード画面を挟む
+  if(r.phase==='roleSelect'&&!seenRoleSelect){
+    seenRoleSelect=true;
+    $('lobby').style.display='none';
+    showLoading(2600,()=>{ applyRoomState(r); });
+    return;
+  }
+  // 超能力が覚醒するタイミングで、暗闇に雫が落ちる演出を挟む
+  if(r.phase==='powerReveal'&&!seenPowerReveal){
+    seenPowerReveal=true;
+    $('roleSelect').style.display='none';
+    setScreenBg(false);
+    showAwaken(()=>{ applyRoomState(r); });
+    return;
+  }
+  applyRoomState(r);
+});
+
+function applyRoomState(r){
   $('lobby').style.display=r.phase==='lobby'?'block':'none';
   $('roleSelect').style.display=r.phase==='roleSelect'?'block':'none';
   $('powerReveal').style.display=r.phase==='powerReveal'?'block':'none';
   $('game').style.display=(r.phase==='playing'||r.phase==='finished')?'grid':'none';
   $('finished').style.display=r.phase==='finished'?'flex':'none';
   const inGame=(r.phase==='playing'||r.phase==='finished');
+  // ロビー〜超能力確認の各画面では、ホーム画面と同じ演出の背景を表示する
+  // ゲーム中も同じ背景を薄く表示し、画面全体の統一感を保つ
+  setScreenBg(true,inGame);
   document.querySelector('.wrap').classList.toggle('in-game',inGame);
-  $('topBar').classList.toggle('hidden',inGame);
+  // :has()未対応ブラウザでも背景演出が見えるようにする
+  document.body.style.background=inGame?'transparent':'';
+  // 盤面の常時アニメーション（脈動・炎・発光）はゲーム中だけ回す
+  if(inGame) startBoardLoop(); else stopBoardLoop();
+  $('topBar').classList.add('hidden');
   $('roomIdLabel').textContent=r.id;
   if(r.phase==='lobby') renderLobby(r);
   if(r.phase==='roleSelect') renderRoleSelect(r);
@@ -968,7 +2336,7 @@ socket.on('roomUpdate',r=>{
     }
   }
   if(r.phase==='finished'){const w=r.players.find(p=>p.id===r.winnerId);$('winnerMsg').textContent=w?w.name+' の勝利です！':'';sfxVictory();}
-});
+}
 
 /* ======== UNIFIED ANIMATION QUEUE ======== */
 let animQueue=[];
@@ -981,6 +2349,10 @@ function runNextAnim(){
     animBusy=false;
     // キュー完了時に保留していた最新状態を反映
     if(pendingRoomState){renderGame(pendingRoomState);pendingRoomState=null;}
+    // HP/PSYバーは全アニメーションが終わったこの時点でまとめて更新する
+    if(currentRoom&&currentRoom.players){
+      currentRoom.players.forEach(p=>refreshPlayerCard(p.id));
+    }
     return;
   }
   animBusy=true;
@@ -998,10 +2370,11 @@ function runNextAnim(){
   const watchdog=setTimeout(()=>{
     console.error('[animQueue] watchdog timeout — forcing advance');
     // 開いたままの可能性があるオーバーレイを強制的に閉じる
-    ['diceOverlay','battleOverlay','hpEffectOverlay','abilityActivationOverlay','battleChoiceModal','counterChoiceModal','turnBanner','lvUpBanner','eventBanner','disasterBanner','foresightBanner','disasterDiceOverlay'].forEach(id=>{
+    ['diceOverlay','battleOverlay','hpEffectOverlay','abilityActivationOverlay','battleChoiceModal','counterChoiceModal','turnBanner','myTurnBanner','lvUpBanner','eventBanner','disasterBanner','foresightBanner','disasterDiceOverlay','mapTransitionBanner','monsterBattleOverlay','monsterChoiceModal'].forEach(id=>{
       const el=document.getElementById(id);
       if(el) el.style.display='none';
     });
+    $('abilityPanel').classList.remove('open');
     tokenAnim=null;
     advance();
   },15000);
@@ -1009,7 +2382,7 @@ function runNextAnim(){
     fn(advance);
   }catch(err){
     console.error('[animQueue] task threw an error, advancing queue anyway:',err);
-    ['diceOverlay','battleOverlay','hpEffectOverlay','abilityActivationOverlay','battleChoiceModal','counterChoiceModal','disasterDiceOverlay'].forEach(id=>{
+    ['diceOverlay','battleOverlay','hpEffectOverlay','abilityActivationOverlay','battleChoiceModal','counterChoiceModal','disasterDiceOverlay','mapTransitionBanner','monsterBattleOverlay','monsterChoiceModal'].forEach(id=>{
       const el=document.getElementById(id);
       if(el) el.style.display='none';
     });
@@ -1145,10 +2518,18 @@ socket.on('turnStart',({playerId,playerName})=>{
   queueAnim(done=>{
     sfxTurn();
     const isMe=playerId===myId;
-    $('turnBannerText').textContent=isMe?'あなたのターン':playerName+' のターン';
-    $('turnBannerText').style.color=isMe?'var(--gold)':'var(--text)';
-    $('turnBanner').style.display='flex';
-    setTimeout(()=>{$('turnBanner').style.display='none';done();},1800);
+    if(isMe){
+      // 自分の番は画面中央に大きく告知する
+      const el=$('myTurnBanner');
+      el.style.display='none';void el.offsetWidth; // アニメーションを再生し直す
+      el.style.display='flex';
+      setTimeout(()=>{el.style.display='none';done();},2200);
+    } else {
+      $('turnBannerText').textContent=playerName+' のターン';
+      $('turnBannerText').style.color='var(--text)';
+      $('turnBanner').style.display='flex';
+      setTimeout(()=>{$('turnBanner').style.display='none';done();},1800);
+    }
   });
 });
 
@@ -1193,8 +2574,7 @@ socket.on('hpChange',({playerId,playerName,amount})=>{
     $('hpEffectOverlay').style.display='flex';
     setTimeout(()=>{
       $('hpEffectOverlay').style.display='none';
-      // HPバーを実際に更新（currentRoomは常に最新のサーバー状態を保持している）
-      refreshPlayerCard(playerId);
+      // バーの反映は全アニメーション終了後にまとめて行う（runNextAnimのキュー完了時）
       const cards=$('colLeft').querySelectorAll('.p-card');
       cards.forEach(card=>{
         const nameEl=card.querySelector('.p-name');
@@ -1223,7 +2603,6 @@ socket.on('energyChange',({playerId,playerName,amount})=>{
     setTimeout(()=>{
       $('hpEffectOverlay').style.display='none';
       $('hpEffectNum').style.color='';
-      refreshPlayerCard(playerId);
       const cards=$('colLeft').querySelectorAll('.p-card');
       cards.forEach(card=>{
         const nameEl=card.querySelector('.p-name');
@@ -1346,6 +2725,145 @@ socket.on('disasterTriggered',({name,label,image})=>{
       $('disasterBanner').style.display='none';
       done();
     },3200);
+  });
+});
+
+/* ---- マップ移行 ---- */
+socket.on('mapTransition',({mapIndex,totalMaps,winnerName,mapName,mapDescription,startPos})=>{
+  queueAnim(done=>{
+    sfxVictory();
+    $('mtWinnerText').textContent=winnerName+' が一番乗りでゴール！';
+    $('mtMapText').textContent=(mapName?mapName+' ':'')+'（マップ '+mapIndex+' / '+totalMaps+'）';
+    $('mapTransitionBanner').style.display='flex';
+    setTimeout(()=>{
+      $('mapTransitionBanner').style.display='none';
+      // 全プレイヤーの表示位置を新マップの開始地点へ明示的に確定させる
+      const sp=(startPos!=null)?startPos:0;
+      if(currentRoom&&currentRoom.players){
+        currentRoom.players.forEach(p=>{commitDisplayPosition(p.id,sp);});
+      }
+      tokenAnim=null;
+      if(currentRoom) drawMap($('mapCanvas'),currentRoom,currentDisplayOverrides());
+      done();
+    },3200);
+  });
+});
+
+/* ---- モンスター戦闘 ---- */
+/* ---- モンスター戦: 超能力選択 ---- */
+let currentMonsterChoiceDone=null;
+
+socket.on('monsterBattleChoicePending',({monsterName,monsterImage,monsterAbilityName,monsterAbilityDesc})=>{
+  // サーバーはこの選択を待って停止するため、キューを介さず即座に表示する
+  (function(){
+    const me=currentRoom?currentRoom.players.find(p=>p.id===myId):null;
+    const body=$('monsterChoiceBody');
+    body.innerHTML='';
+    if(monsterImage){
+      const img=document.createElement('img');
+      img.className='mc-img';
+      img.src='/img/monsters/'+monsterImage+'.png';
+      body.appendChild(img);
+    }
+    const title=document.createElement('div');
+    title.style.cssText='font-family:var(--fd);color:#ff7ac6;font-weight:700;margin-bottom:6px;text-align:center;';
+    title.textContent=monsterName+' が現れた！';
+    body.appendChild(title);
+    if(monsterAbilityName){
+      const ab=document.createElement('div');
+      ab.style.cssText='font-size:.78em;color:var(--teal);margin-bottom:10px;text-align:center;';
+      ab.textContent='能力: '+monsterAbilityName+' — '+(monsterAbilityDesc||'');
+      body.appendChild(ab);
+    }
+    const usedT=(me&&me.usedTimings)||[];
+    const hasCopies=((me&&me.powers)||[]).some(p=>p.isCopy);
+    const abilities=((me&&me.powers)||[]).filter(pw=>{
+      if(pw.locked||pw.timing!=='battle'||pw.type!=='self') return false;
+      if(me.energy<pw.cost) return false;
+      if(usedT.includes('battle')) return false;
+      if((pw.name==='トラッシュ'||pw.name==='クリアー')&&!hasCopies) return false;
+      return true;
+    });
+    abilities.forEach(pw=>{
+      const b=document.createElement('button');
+      b.style.textAlign='left';
+      b.innerHTML='<b>'+pw.name+'</b> <span style="color:var(--teal);font-size:.8em;">PSY '+pw.cost+'</span><br><span style="font-size:.75em;color:var(--dim);">'+pw.description+'</span>';
+      b.onclick=()=>{submitMonsterBattleChoice(pw.lineId);};
+      body.appendChild(b);
+    });
+    const skip=document.createElement('button');
+    skip.className='dan';
+    skip.textContent='使用しない';
+    skip.onclick=()=>{submitMonsterBattleChoice(null);};
+    body.appendChild(skip);
+    $('monsterChoiceModal').style.display='flex';
+  })();
+});
+
+function submitMonsterBattleChoice(powerId){
+  socket.emit('submitMonsterBattleChoice',{powerId});
+  $('monsterChoiceModal').style.display='none';
+  if(currentMonsterChoiceDone){
+    const d=currentMonsterChoiceDone;
+    currentMonsterChoiceDone=null;
+    d();
+  }
+}
+
+socket.on('monsterBattleRolled',(data)=>{
+  const{playerId,playerName,playerDie,playerRoll,playerBonus,monsterName,monsterImage,monsterDie,monsterRoll,monsterBonus,monsterAbilityName,monsterAbilityDesc,result,dmg,xp}=data;
+  queueAnim(done=>{
+    try{
+      sfxBattle();
+      $('mbTitle').textContent=monsterName+' が現れた！';
+      $('mbImg').src=monsterImage?('/img/monsters/'+monsterImage+'.png'):'';
+      $('mbImg').style.display=monsterImage?'block':'none';
+      $('mbAbility').textContent=monsterAbilityName?('能力: '+monsterAbilityName+' — '+(monsterAbilityDesc||'')):'';
+      $('mbPlayerName').textContent=playerName;
+      $('mbMonsterName').textContent=monsterName;
+      $('mbPlayerRoll').textContent='';$('mbMonsterRoll').textContent='';
+      $('mbPlayerBonus').textContent='';$('mbMonsterBonus').textContent='';
+      $('mbResult').textContent='';
+      $('monsterBattleOverlay').style.display='flex';
+      setTimeout(()=>{
+        try{
+          const cP=mkCube($('mbPlayerDice')),cM=mkCube($('mbMonsterDice'));
+          sfxDiceRoll();
+          let dc=0;
+          function fin(){
+            if(++dc<2)return;
+            $('mbPlayerRoll').textContent=playerRoll;
+            $('mbMonsterRoll').textContent=monsterRoll;
+            if(playerBonus) $('mbPlayerBonus').textContent='ボーナス '+(playerBonus>0?'+':'')+playerBonus;
+            if(monsterBonus) $('mbMonsterBonus').textContent='ボーナス '+(monsterBonus>0?'+':'')+monsterBonus;
+            if(result==='player'){
+              $('mbResult').style.color='var(--gold)';
+              $('mbResult').textContent=monsterName+'を撃破！ 経験値+'+(xp||0);
+            } else if(result==='monster'){
+              $('mbResult').style.color='#ef4576';
+              $('mbResult').textContent=playerName+'は敗北… 体力'+(dmg||0)+'を失う';
+            } else {
+              $('mbResult').style.color='#9a8fc4';
+              $('mbResult').textContent='引き分け';
+            }
+            setTimeout(()=>{
+              $('monsterBattleOverlay').style.display='none';
+              done();
+            },2200);
+          }
+          rollAnim(cP,Math.min(6,Math.max(1,playerDie)),1500+Math.random()*200,null,fin);
+          rollAnim(cM,Math.min(6,Math.max(1,monsterDie)),1500+Math.random()*200,null,fin);
+        }catch(err){
+          console.error('[monsterBattle] error during dice:',err);
+          $('monsterBattleOverlay').style.display='none';
+          done();
+        }
+      },1400);
+    }catch(err){
+      console.error('[monsterBattle] error:',err);
+      $('monsterBattleOverlay').style.display='none';
+      done();
+    }
   });
 });
 

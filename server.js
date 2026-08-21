@@ -5,11 +5,14 @@ const path = require('path');
 const {
   ROLES,
   SUPER_SETS,
-  XP_PER_TILE, XP_ABILITY_USE, XP_BATTLE_WIN, XP_BATTLE_LOSE, XP_BATTLE_DRAW,
+  XP_PER_TILE, XP_ABILITY_USE, XP_BATTLE_WIN, XP_BATTLE_LOSE, XP_BATTLE_DRAW, XP_MAP_FIRST,
   MAX_LEVEL, LEVEL_XP,
-  pickWeightedCellEvent,
   pickRandomDisaster,
   getLineStage,
+  pickRandomMonster,
+  getMapByIndex,
+  getShortcutAt,
+  pickCellEventForMap,
 } = require('./gameData');
 
 const app = express();
@@ -20,9 +23,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const MAX_PLAYERS = 4;
 const MIN_PLAYERS = 2;
-const BOARD_SIZE = 34;
+const BOARD_SIZE = 34; // 後方互換用のデフォルト値。実際の盤面サイズはgetBoardSize(room)で取得する
 const DISASTER_MIN_ROUNDS = 2;  // 最初のこの数のラウンドは自然発生の災害が起きない
 const DISASTER_EXTRA_TURNS = 20; // 発生可能な最短ターンから、さらに何ターン分の幅を持たせるか
+const MAX_MAPS = 4; // 合計マップ数（最後のマップで最初にゴールした人が優勝）
+const DISASTERS_PER_MAP_MIN = 1; // 1マップあたりの災害発生回数の下限
+const DISASTERS_PER_MAP_MAX = 3; // 1マップあたりの災害発生回数の上限
 const BASE_MAX_HP = 10;
 const BASE_MAX_ENERGY = 6;
 const BASE_HP_REGEN = 1;
@@ -30,6 +36,43 @@ const BASE_ENERGY_REGEN = 1;
 const REST_BONUS = 2;
 const INCAPACITATED_TURNS = 2;
 const BATTLE_DAMAGE = 3;
+
+// 説明画面用: ゲーム内データをまとめて返す
+app.get('/api/guide', (req, res) => {
+  const { ROLES: R, SUPER_SETS: S, MONSTERS: M, DISASTERS: D, MAPS: MP } = require('./gameData');
+  res.json({
+    roles: R.map(r => ({ id: r.id, name: r.name, description: r.description, passive: r.passive || {} })),
+    superSets: S.map(s => ({
+      id: s.id, name: s.name, image: s.image,
+      lines: s.lines.map(l => ({
+        id: l.id,
+        stages: l.stages.map(st => ({
+          level: st.level, name: st.name, cost: st.cost,
+          timing: st.timing, type: st.type, description: st.description,
+        })),
+      })),
+    })),
+    monsters: M.map(m => ({
+      id: m.id, name: m.name, image: m.image, diceBonus: m.diceBonus,
+      damage: m.damage, xp: m.xp, abilityName: m.abilityName, abilityDesc: m.abilityDesc,
+    })),
+    disasters: D.map(d => ({ id: d.id, name: d.name, image: d.image, description: d.description })),
+    maps: MP.map(m => ({
+      index: m.index, name: m.name, boardSize: m.boardSize,
+      layout: m.layout, description: m.description,
+      shortcuts: (m.shortcuts || []).map(s => ({ from: s.from, to: s.to, backward: !!s.backward })),
+    })),
+    constants: {
+      maxMaps: MAX_MAPS, baseMaxHp: BASE_MAX_HP, baseMaxEnergy: BASE_MAX_ENERGY,
+      battleDamage: BATTLE_DAMAGE, restBonus: REST_BONUS, incapacitatedTurns: INCAPACITATED_TURNS,
+      xpPerTile: XP_PER_TILE, xpAbility: XP_ABILITY_USE, xpBattleWin: XP_BATTLE_WIN,
+      xpBattleLose: XP_BATTLE_LOSE, xpBattleDraw: XP_BATTLE_DRAW, xpMapFirst: XP_MAP_FIRST,
+      levelXp: LEVEL_XP, maxLevel: MAX_LEVEL,
+      disastersPerMapMin: DISASTERS_PER_MAP_MIN, disastersPerMapMax: DISASTERS_PER_MAP_MAX,
+    },
+  });
+});
+
 const PLAYER_COLORS = ['#8b5cf6', '#22d3ee', '#f2b705', '#ef4444'];
 const BOT_NAMES = ['アルファ', 'ベータ', 'ガンマ', 'デルタ'];
 const BOT_DELAY = 1200; // Botの行動間隔(ms)
@@ -92,6 +135,12 @@ function buildLogForPlayer(log, forSocketId) {
     }
     return entry.msg;
   });
+}
+
+// 現在のマップの盤面サイズを返す
+function getBoardSize(room) {
+  const map = getMapByIndex(room.currentMapIndex || 1);
+  return map.boardSize;
 }
 
 function getSetById(setId) {
@@ -225,10 +274,18 @@ function publicRoomState(room, forSocketId) {
       }
       return pub;
     }),
-    boardSize: BOARD_SIZE,
+    boardSize: getBoardSize(room),
     turnOrder: room.turnOrder || [],
     currentTurnId: room.phase === 'playing' ? room.turnOrder[room.turnIndex] : null,
     roundNumber: room.roundNumber || 0,
+    currentMapIndex: room.currentMapIndex || 1,
+    totalMaps: MAX_MAPS,
+    mapName: getMapByIndex(room.currentMapIndex || 1).name,
+    mapDescription: getMapByIndex(room.currentMapIndex || 1).description,
+    mapLayout: getMapByIndex(room.currentMapIndex || 1).layout,
+    mapCols: getMapByIndex(room.currentMapIndex || 1).cols,
+    mapTerrain: getMapByIndex(room.currentMapIndex || 1).terrain,
+    mapShortcuts: (getMapByIndex(room.currentMapIndex || 1).shortcuts || []).map(s => ({ from: s.from, to: s.to, backward: !!s.backward })),
     roles: ROLES.map((r) => ({ id: r.id, name: r.name, description: r.description })),
     superSets: SUPER_SETS.map(s => ({
       id: s.id, name: s.name, image: s.image,
@@ -348,7 +405,7 @@ function applyDelta(room, p, delta) {
     }
   }
   if (delta.move) {
-    p.position = clamp(p.position + delta.move, 0, BOARD_SIZE);
+    p.position = clamp(p.position + delta.move, 0, getBoardSize(room));
   }
   if (p.hp <= 0) {
     p.hp = 0;
@@ -361,12 +418,91 @@ function applyDelta(room, p, delta) {
 }
 
 function checkGoal(room, p) {
-  if (p.position >= BOARD_SIZE && !p.finished) {
+  if (p.position >= getBoardSize(room) && !p.finished) {
     p.finished = true;
-    room.phase = 'finished';
-    room.winnerId = p.id;
-    addLog(room, `${p.name} が誰よりも先にゴールに到達した！勝利！`);
+    const mapIndex = room.currentMapIndex || 1;
+    if (mapIndex >= MAX_MAPS) {
+      // 最終マップ: ゲーム全体の勝利
+      room.phase = 'finished';
+      room.winnerId = p.id;
+      addLog(room, `${p.name} が最終マップを誰よりも先にゴールし、優勝した！`);
+    } else {
+      // 最終マップでない: 次のマップへ移行する（同ターン内での多重発火を防ぐためフラグを立てる）
+      addLog(room, `${p.name} がマップ${mapIndex}を誰よりも先にゴールした！`);
+      grantXP(room, p, XP_MAP_FIRST, 'マップ1位ゴール');
+      room.pendingMapTransitionWinner = p.id;
+    }
   }
+}
+
+// プレイヤーを次のマップ用にリセットする（役職・超能力セット・レベル・経験値は引き継ぐ）
+function resetPlayerForNewMap(p, startPos) {
+  p.position = startPos || 0;
+  p.hp = p.maxHp;
+  p.energy = p.maxEnergy;
+  p.incapacitatedTurns = 0;
+  p.finished = false;
+  p.finishOrder = null;
+  p.actionTaken = false;
+  p.restedThisTurn = false;
+  p.pendingDiceBonus = 0;
+  p.pendingFixedMove = 0;
+  p.blockNextBadEvent = false;
+  p.hasBarrier = false;
+  p.usedTimings = [];
+  p.battleDoneThisTurn = false;
+  p.hasRerolledThisTurn = false;
+  p.hasUsedTripleDice = false;
+  p.pendingBattleDebuff = 0;
+  p.pendingBattleDiceBonus = 0;
+  p.pendingBattleDamageBonus = 0;
+  p.pendingBattleDiceMultiplier = 1;
+  p.pendingBattleSplash = null;
+  p.pendingBattleEvade = null;
+  p.pendingBattleOpponentDiceFix = null;
+  p.pendingBattleDamageReflect = false;
+  p.pendingIncomingMoveEffect = null;
+  p.copiedAbilities = [];
+  p.disasterPrayerUsed = false;
+}
+
+// 次のマップへ移行する。順番はゴールから遠い人（マス目が小さい人）から。
+function startNextMap(room) {
+  const winner = getPlayer(room, room.pendingMapTransitionWinner);
+  room.pendingMapTransitionWinner = null;
+  if (!winner) return;
+
+  // ゴールから遠い順（マス目の小さい順）に新しい手番順を決定。ゴールした本人は最後になる
+  const sorted = [...room.players].sort((a, b) => a.position - b.position);
+  room.turnOrder = sorted.map(pl => pl.id);
+  room.turnIndex = 0;
+
+  room.currentMapIndex = (room.currentMapIndex || 1) + 1;
+  const newMap = getMapByIndex(room.currentMapIndex);
+  room.roundNumber = 1;
+  room.globalTurnCount = 0;
+  room.traps = [];
+  room._trapIdCounter = 0;
+  room.abilityHistoryByPosition = {};
+  room.bannedAbilities = [];
+  room.disastersFiredCount = 0;
+  room.disasterSchedule = computeDisasterSchedule(room);
+  room.pendingBattleChoice = null;
+  room.activeTimejammer = null;
+
+  room.players.forEach(pl => resetPlayerForNewMap(pl, newMap.startPos));
+
+  addLog(room, `全員が新しいマップ「${newMap.name}」（${room.currentMapIndex}/${MAX_MAPS}）へ移動した。HPとサイコエナジーが全回復した`);
+  addLog(room, newMap.description);
+  io.to(room.id).emit('mapTransition', {
+    mapIndex: room.currentMapIndex, totalMaps: MAX_MAPS, winnerName: winner.name,
+    mapName: newMap.name, mapDescription: newMap.description, startPos: newMap.startPos,
+  });
+
+  broadcastRoom(room);
+  const first = getPlayer(room, room.turnOrder[room.turnIndex]);
+  if (first) io.to(room.id).emit('turnStart', { playerId: first.id, playerName: first.name });
+  scheduleBotTurn(room);
 }
 
 function resetTurnFlags(p) {
@@ -672,6 +808,130 @@ function tryResolveBattleNegotiation(room) {
 }
 
 // 共通戦闘処理: attacker=仕掛けた側, defender=仕掛けられた側
+// モンスター戦: 先に「戦闘超能力を使うか」を本人に選ばせてから戦闘を実行する
+function startMonsterBattleNegotiation(room, player, monster, onComplete) {
+  room.pendingMonsterBattle = { playerId: player.id, monster, onComplete };
+  if (player.isBot) {
+    const choice = botChooseBattleAbility(room, player);
+    resolveMonsterBattleChoice(room, choice);
+  } else {
+    const options = getAvailableLines(room, player, 'battle').filter(o => o.stage.type === 'self');
+    if (options.length === 0) {
+      // 使える戦闘超能力が無ければ選択を挟まずそのまま戦闘へ
+      resolveMonsterBattleChoice(room, null);
+    } else {
+      io.to(player.id).emit('monsterBattleChoicePending', {
+        monsterName: monster.name, monsterImage: monster.image,
+        monsterAbilityName: monster.abilityName, monsterAbilityDesc: monster.abilityDesc,
+      });
+      broadcastRoom(room);
+    }
+  }
+}
+
+function resolveMonsterBattleChoice(room, lineId) {
+  const pending = room.pendingMonsterBattle;
+  if (!pending) return;
+  const player = getPlayer(room, pending.playerId);
+  const monster = pending.monster;
+  const onComplete = pending.onComplete;
+  room.pendingMonsterBattle = null;
+  if (!player) return;
+
+  if (lineId) {
+    try {
+      const name = applyBattleAbility(room, player, lineId, false);
+      const set = player.superSetId ? getSetById(player.superSetId) : null;
+      if (name) io.to(room.id).emit('battleAbilityActivated', { playerId: player.id, playerName: player.name, powerName: name, setImage: set ? set.image : null });
+    } catch (err) {
+      console.error('[monsterBattle] error applying ability:', err);
+    }
+  }
+  executeMonsterBattle(room, player, monster);
+  if (typeof onComplete === 'function') onComplete();
+  broadcastRoom(room);
+}
+
+// モンスターとの戦闘: 1回のダイス勝負で決着する
+function executeMonsterBattle(room, player, monster) {
+  const passive = player.role.passive || {};
+  const roleBonus = (passive.battleDiceBonus || 0) + (passive.attackDiceBonus || 0);
+  const abilityDice = player.pendingBattleDiceBonus || 0;
+  const mult = player.pendingBattleDiceMultiplier || 1;
+  const abilityDmg = player.pendingBattleDamageBonus || 0;
+
+  const playerDie = Math.floor(Math.random() * 6) + 1;
+  const monsterDie = Math.floor(Math.random() * 6) + 1;
+  const debuff = monster.playerDiceDebuff || 0;
+  const playerRoll = Math.max(0, (playerDie + roleBonus) * mult + abilityDice - debuff);
+  const monsterRoll = Math.max(0, monsterDie + (monster.diceBonus || 0));
+
+  addLog(room, `モンスター戦: ${player.name}(${playerRoll}) vs ${monster.name}(${monsterRoll})`);
+
+  const battleData = {
+    playerId: player.id, playerName: player.name,
+    playerDie, playerRoll, playerBonus: playerRoll - playerDie,
+    monsterName: monster.name, monsterImage: monster.image,
+    monsterDie, monsterRoll, monsterBonus: monsterRoll - monsterDie,
+    monsterAbilityName: monster.abilityName, monsterAbilityDesc: monster.abilityDesc,
+  };
+
+  // 使用済みの戦闘用超能力補正をリセット
+  player.pendingBattleDebuff = 0;
+  player.pendingBattleDiceBonus = 0;
+  player.pendingBattleDiceMultiplier = 1;
+  player.pendingBattleDamageBonus = 0;
+  player.pendingBattleSplash = null;
+  player.pendingBattleEvade = null;
+  player.pendingBattleOpponentDiceFix = null;
+  player.pendingBattleDamageReflect = false;
+
+  if (playerRoll > monsterRoll) {
+    battleData.result = 'player';
+    battleData.xp = monster.xp;
+    io.to(room.id).emit('monsterBattleRolled', battleData);
+    addLog(room, `${player.name} は ${monster.name} を撃破した！`);
+    grantXP(room, player, monster.xp, 'モンスター撃破');
+  } else if (monsterRoll > playerRoll) {
+    const dmg = Math.max(0, (monster.damage || 0) - (passive.battleDamageReduction || 0));
+    battleData.result = 'monster';
+    battleData.dmg = dmg;
+    io.to(room.id).emit('monsterBattleRolled', battleData);
+    const { hpApplied } = applyDelta(room, player, { hp: -dmg });
+    if (hpApplied !== 0) {
+      emitHpChange(room, player, hpApplied);
+      addLog(room, `${player.name} は ${monster.name} に敗れ、体力を${-hpApplied}失った`);
+    } else {
+      addLog(room, `${player.name} は ${monster.name} の攻撃を無効化した`);
+    }
+    // モンスター固有の追加効果
+    if (monster.knockbackOnWin) {
+      const before = player.position;
+      player.position = Math.max(0, player.position - monster.knockbackOnWin);
+      if (player.position !== before) {
+        addLog(room, `${player.name} は鎖に引きずられ、${before - player.position}マス後退した`);
+        io.to(room.id).emit('disasterMoveResult', { playerId: player.id, playerName: player.name, fromPos: before, toPos: player.position });
+      }
+    }
+    if (monster.energyDrainOnWin) {
+      const before = player.energy;
+      player.energy = clamp(player.energy - monster.energyDrainOnWin, 0, player.maxEnergy);
+      const applied = player.energy - before;
+      if (applied !== 0) {
+        emitEnergyChange(room, player, applied);
+        addLog(room, `${player.name} はサイコエナジーを${-applied}奪われた`);
+      }
+    }
+    grantXP(room, player, Math.ceil(monster.xp * 0.3), 'モンスター戦敗北');
+  } else {
+    battleData.result = 'draw';
+    io.to(room.id).emit('monsterBattleRolled', battleData);
+    addLog(room, `${player.name} と ${monster.name} の戦いは引き分けに終わった`);
+    grantXP(room, player, Math.ceil(monster.xp * 0.5), 'モンスター戦引き分け');
+  }
+  return battleData;
+}
+
 function executeBattle(room, attacker, defender) {
   const aP = attacker.role.passive || {};
   const dP = defender.role.passive || {};
@@ -898,11 +1158,20 @@ function distributeSuperSet(room) {
 function advanceTurn(room) {
   if (room.phase !== 'playing') return;
 
-  // 災害チェック: 直前に終わったターンをカウントし、抽選されたターン数に達したら発生させる
+  // マップ移行が予約されている場合は、通常のターン進行の代わりにこちらを実行する
+  if (room.pendingMapTransitionWinner) {
+    startNextMap(room);
+    return;
+  }
+
+  // 災害チェック: 抽選されたターンに達したものを順に発生させる（1マップに1〜3回）
   room.globalTurnCount = (room.globalTurnCount || 0) + 1;
-  if (!room.disasterFired && room.disasterTriggerTurn && room.globalTurnCount >= room.disasterTriggerTurn) {
-    room.disasterFired = true;
-    resolveDisaster(room, null);
+  if (Array.isArray(room.disasterSchedule) && room.disasterSchedule.length > 0) {
+    while (room.disasterSchedule.length > 0 && room.globalTurnCount >= room.disasterSchedule[0]) {
+      room.disasterSchedule.shift();
+      room.disastersFiredCount = (room.disastersFiredCount || 0) + 1;
+      resolveDisaster(room, null);
+    }
   }
 
   let guard = 0;
@@ -927,6 +1196,11 @@ function advanceTurn(room) {
 
   // ターン開始通知
   const nextPlayer = getPlayer(room, room.turnOrder[room.turnIndex]);
+  // タイムジャマーが発動中かつ次のプレイヤーが発動者なら効果を解除する
+  if (room.activeTimejammer && nextPlayer && nextPlayer.id === room.activeTimejammer.casterId) {
+    addLog(room, `タイムジャマーの効果が終了した`);
+    room.activeTimejammer = null;
+  }
   if (nextPlayer) {
     io.to(room.id).emit('turnStart', { playerId: nextPlayer.id, playerName: nextPlayer.name });
   }
@@ -949,7 +1223,7 @@ function applyDisasterDelta(room, pl, { hp, energy, move } = {}) {
   }
   if (move) {
     const before = pl.position;
-    pl.position = clamp(pl.position + move, 0, BOARD_SIZE);
+    pl.position = clamp(pl.position + move, 0, getBoardSize(room));
     checkGoal(room, pl);
     if (pl.position !== before) {
       io.to(room.id).emit('disasterMoveResult', { playerId: pl.id, playerName: pl.name, fromPos: before, toPos: pl.position });
@@ -960,11 +1234,20 @@ function applyDisasterDelta(room, pl, { hp, energy, move } = {}) {
 // 災害: マップごとに1度、抽選されたターンの終わりに発生する（自然発生）。
 // 祈祷による発動時はexcludePlayerIdに発動者のidを渡し、その本人だけ効果を除外する。
 // プレイヤー人数に応じて「最初のDISASTER_MIN_ROUNDSラウンドを除外した」トリガーターンを抽選する
-function computeDisasterTriggerTurn(room) {
+// 1マップあたり DISASTERS_PER_MAP_MIN〜MAX 回の災害発生ターンを抽選する。
+// 最初の DISASTER_MIN_ROUNDS ラウンド分は対象外。
+function computeDisasterSchedule(room) {
   const playerCount = room.turnOrder.length || 1;
-  const minTurn = playerCount * DISASTER_MIN_ROUNDS + 1; // これより後のターンでのみ発生しうる
+  const minTurn = playerCount * DISASTER_MIN_ROUNDS + 1;
   const maxTurn = minTurn + DISASTER_EXTRA_TURNS;
-  return minTurn + Math.floor(Math.random() * (maxTurn - minTurn + 1));
+  const count = DISASTERS_PER_MAP_MIN + Math.floor(Math.random() * (DISASTERS_PER_MAP_MAX - DISASTERS_PER_MAP_MIN + 1));
+  const turns = new Set();
+  let guard = 0;
+  while (turns.size < count && guard < 100) {
+    turns.add(minTurn + Math.floor(Math.random() * (maxTurn - minTurn + 1)));
+    guard++;
+  }
+  return [...turns].sort((a, b) => a - b);
 }
 
 function resolveDisaster(room, excludePlayerId) {
@@ -1081,6 +1364,14 @@ function botTakeTurn(room, bot) {
     }
     bot.pendingDiceBonus = 0;
 
+    // タイムジャマーの影響（次の自分の番まで継続）
+    const botJammer = room.activeTimejammer;
+    if (botJammer && botJammer.casterId !== bot.id) {
+      if (botJammer.mode === 'fixed') { baseRoll = botJammer.value; bonus = 0; roll = botJammer.value; }
+      else if (botJammer.mode === 'reduce') { roll = Math.max(0, roll - botJammer.value); }
+      addLog(room, `${bot.name} はタイムジャマーの干渉を受けた`);
+    }
+    // 災害による1回限りの個別移動効果
     if (bot.pendingIncomingMoveEffect) {
       const eff = bot.pendingIncomingMoveEffect;
       bot.pendingIncomingMoveEffect = null;
@@ -1097,7 +1388,7 @@ function botTakeTurn(room, bot) {
     let battlePos = 0;
     let battleOpp = null;
     for (let step = 1; step <= roll; step++) {
-      const pos = Math.min(startPos + step, BOARD_SIZE);
+      const pos = Math.min(startPos + step, getBoardSize(room));
       if (pos <= 0) continue;
       const opponents = room.players.filter(p =>
         p.id !== bot.id && p.position === pos && !p.finished && p.incapacitatedTurns === 0
@@ -1111,36 +1402,56 @@ function botTakeTurn(room, bot) {
         battleOnPath = true; battlePos = pos; battleOpp = opp;
         break;
       }
-      if (pos >= BOARD_SIZE) break;
+      if (pos >= getBoardSize(room)) break;
     }
 
     if (!battleOnPath) {
-      bot.position = Math.min(startPos + roll, BOARD_SIZE);
+      bot.position = Math.min(startPos + roll, getBoardSize(room));
       checkTrapsOnPath(room, bot, startPos, bot.position);
       grantXP(room, bot, roll * XP_PER_TILE, 'マス移動');
+      // ショートカット（近道 / 落とし穴）の判定
+      const botShortcut = getShortcutAt(room.currentMapIndex || 1, bot.position);
+      let botShortcutData = null;
+      if (botShortcut) {
+        const before = bot.position;
+        bot.position = clamp(botShortcut.to, 0, getBoardSize(room));
+        addLog(room, `${bot.name}: ${botShortcut.label}`);
+        botShortcutData = { playerId: bot.id, playerName: bot.name, fromPos: before, toPos: bot.position, label: botShortcut.label, backward: !!botShortcut.backward };
+      }
       checkGoal(room, bot);
       let cellEventLabel = null;
       let cellMoveDelta = 0;
       let cellHpApplied = 0;
+      let botMonster = null;
       if (!bot.finished) {
-        const event = pickWeightedCellEvent();
+        let event = pickCellEventForMap(room.currentMapIndex || 1);
+        const bPassive = bot.role.passive || {};
+        if (bPassive.badEventResist && event.monster && Math.random() < 0.5) {
+          event = { id: 'resist', label: '旅人の直感でモンスターの気配を避けた', apply: () => ({}) };
+        }
         cellEventLabel = event.label;
         addLog(room, `${bot.name} が止まったマス: ${event.label}`);
-        const delta = event.apply(bot);
-        if (delta.move) { cellMoveDelta = delta.move; bot.position = clamp(bot.position + delta.move, 0, BOARD_SIZE); }
-        if (delta.hp) { const { hpApplied } = applyDelta(room, bot, { hp: delta.hp }); cellHpApplied = hpApplied; }
-        if (delta.energy) applyDelta(room, bot, { energy: delta.energy });
+        if (event.monster) {
+          botMonster = pickRandomMonster();
+        } else {
+          const delta = event.apply(bot);
+          if (delta.move) { cellMoveDelta = delta.move; bot.position = clamp(bot.position + delta.move, 0, getBoardSize(room)); }
+          if (delta.hp) { const { hpApplied } = applyDelta(room, bot, { hp: delta.hp }); cellHpApplied = hpApplied; }
+          if (delta.energy) applyDelta(room, bot, { energy: delta.energy });
+        }
         checkGoal(room, bot);
       }
       addLog(room, `${bot.name} はサイコロを振り、${roll}マス進む`);
-      io.to(room.id).emit('diceRolled', { playerId: bot.id, baseRoll, bonus, total: roll, startPos, finalPos: Math.min(startPos + roll, BOARD_SIZE), roleName: bot.role.name, roleBonus: (bot.role.passive||{}).moveDiceBonus||0, isGambler: !!(bot.role.passive||{}).gamblerEffect, gamblerAdjust });
+      io.to(room.id).emit('diceRolled', { playerId: bot.id, baseRoll, bonus, total: roll, startPos, finalPos: Math.min(startPos + roll, getBoardSize(room)), roleName: bot.role.name, roleBonus: (bot.role.passive||{}).moveDiceBonus||0, isGambler: !!(bot.role.passive||{}).gamblerEffect, gamblerAdjust });
       broadcastRoom(room);
+      if (botShortcutData) io.to(room.id).emit('shortcutTriggered', botShortcutData);
       if (cellEventLabel) {
         io.to(room.id).emit('cellEventResult', { playerId: bot.id, label: cellEventLabel, moveDelta: cellMoveDelta, finalPos: bot.position });
       }
       if (cellHpApplied !== 0) emitHpChange(room, bot, cellHpApplied);
-      const steps=Math.min(roll,BOARD_SIZE-startPos);
-      const animTime=1800+1200+300+steps*450+2500;
+      if (botMonster) startMonsterBattleNegotiation(room, bot, botMonster, null);
+      const steps=Math.min(roll,getBoardSize(room)-startPos);
+      const animTime=1800+1200+300+steps*450+2500+(botMonster?9000:0)+(botShortcutData?2500:0);
       setTimeout(() => botEndTurn(room, bot), animTime);
     } else {
       addLog(room, `${bot.name} はサイコロを振り、${roll}マス進む`);
@@ -1253,9 +1564,8 @@ function botTryUseAbility(room, bot) {
           break;
         }
         case 'moveDebuffAll': {
-          const others = room.players.filter(t => t.id !== bot.id && !t.finished);
-          others.forEach(t => { t.pendingIncomingMoveEffect = { mode: stage.effect.mode, value: stage.effect.value }; });
-          addLog(room, `${bot.name} は時間を操り、他の全プレイヤーの次の移動に干渉した`);
+          room.activeTimejammer = { casterId: bot.id, mode: stage.effect.mode, value: stage.effect.value };
+          addLog(room, `${bot.name} は時間を歪め、次の自分の番まで全プレイヤーの移動を干渉する`);
           break;
         }
         case 'disasterForesight': {
@@ -1332,8 +1642,11 @@ function botAutoSelectRoles(room) {
             room.turnIndex = 0;
             room.roundNumber = 1;
             room.globalTurnCount = 0;
-            room.disasterFired = false;
-            room.disasterTriggerTurn = computeDisasterTriggerTurn(room);
+            room.currentMapIndex = 1;
+            const map1 = getMapByIndex(1);
+            room.players.forEach((pl) => { pl.position = map1.startPos; });
+            room.disastersFiredCount = 0;
+            room.disasterSchedule = computeDisasterSchedule(room);
             addLog(room, 'ゲームプレイを開始します');
             broadcastRoom(room);
             const first = getPlayer(room, room.turnOrder[room.turnIndex]);
@@ -1366,6 +1679,7 @@ io.on('connection', (socket) => {
       _trapIdCounter: 0,
       abilityHistoryByPosition: {},
       bannedAbilities: [],
+      activeTimejammer: null,
     };
     rooms.set(roomId, room);
     socket.join(roomId);
@@ -1469,8 +1783,11 @@ io.on('connection', (socket) => {
       room.turnIndex = 0;
       room.roundNumber = 1;
       room.globalTurnCount = 0;
-      room.disasterFired = false;
-      room.disasterTriggerTurn = computeDisasterTriggerTurn(room);
+      room.currentMapIndex = 1;
+      const startMap = getMapByIndex(1);
+      room.players.forEach((pl) => { pl.position = startMap.startPos; });
+      room.disastersFiredCount = 0;
+      room.disasterSchedule = computeDisasterSchedule(room);
       addLog(room, 'ゲームプレイを開始します');
       broadcastRoom(room);
       const first = getPlayer(room, room.turnOrder[room.turnIndex]);
@@ -1514,11 +1831,24 @@ io.on('connection', (socket) => {
     }
     player.pendingDiceBonus = 0;
 
-    // タイムジャマー/タイムグラヴィティの影響を適用（次の移動を減少 or 固定）
+    // タイムジャマー/タイムグラヴィティの影響を適用（次の自分の番まで継続）
     let timeEffectApplied = null;
+    const jammer = room.activeTimejammer;
+    if (jammer && jammer.casterId !== player.id) {
+      // activeTimejammerは発動者の番が来るまで保持され続ける（ここではクリアしない）
+      if (jammer.mode === 'fixed') {
+        baseRoll = jammer.value; bonus = 0; roll = jammer.value;
+        timeEffectApplied = `タイムグラヴィティで移動距離が${jammer.value}マスに固定された`;
+      } else if (jammer.mode === 'reduce') {
+        roll = Math.max(0, roll - jammer.value);
+        timeEffectApplied = `タイムジャマーで移動距離が${jammer.value}マス減少した`;
+      }
+      if (timeEffectApplied) addLog(room, `${player.name} は${timeEffectApplied}`);
+    }
+    // 災害（荒波・飴の雨など）による1回限りの移動効果
     if (player.pendingIncomingMoveEffect) {
       const eff = player.pendingIncomingMoveEffect;
-      player.pendingIncomingMoveEffect = null; // 先にクリアしてから適用（多重適用防止）
+      player.pendingIncomingMoveEffect = null;
       if (eff.mode === 'fixed') {
         baseRoll = eff.value; bonus = 0; roll = eff.value;
         timeEffectApplied = `移動距離が${eff.value}マスに固定された`;
@@ -1526,7 +1856,7 @@ io.on('connection', (socket) => {
         roll = Math.max(0, roll - eff.value);
         timeEffectApplied = `移動距離が${eff.value}マス減少した`;
       }
-      addLog(room, `${player.name} は${timeEffectApplied}`);
+      if (eff.mode) addLog(room, `${player.name} は${timeEffectApplied}`);
     }
 
     player.actionTaken = true;
@@ -1602,7 +1932,7 @@ io.on('connection', (socket) => {
     const moveSteps = player.pendingMoveTotal;
     console.log('[confirmMove]', player.name, 'steps:', moveSteps);
     const startPosForTrap = player.moveStartPos;
-    const finalPos = clamp(player.moveStartPos + moveSteps, 0, BOARD_SIZE);
+    const finalPos = clamp(player.moveStartPos + moveSteps, 0, getBoardSize(room));
     player.position = finalPos;
     player.pendingMoveTotal = 0;
 
@@ -1611,34 +1941,56 @@ io.on('connection', (socket) => {
 
     // 移動XP
     grantXP(room, player, moveSteps * XP_PER_TILE, 'マス移動');
+
+    // ショートカット（近道 / 落とし穴）の判定
+    const shortcut = getShortcutAt(room.currentMapIndex || 1, player.position);
+    let shortcutData = null;
+    if (shortcut && !player.finished) {
+      const before = player.position;
+      player.position = clamp(shortcut.to, 0, getBoardSize(room));
+      addLog(room, `${player.name}: ${shortcut.label}`);
+      shortcutData = { playerId: player.id, playerName: player.name, fromPos: before, toPos: player.position, label: shortcut.label, backward: !!shortcut.backward };
+    }
     checkGoal(room, player);
 
     let cellEventLabel = null;
     let cellMoveDelta = 0;
     let cellHpApplied = 0;
+    let encounteredMonster = null;
     if (!player.finished) {
-      let event = pickWeightedCellEvent();
-      // 旅人のbadEventResist: 不利なイベントを50%の確率で無効化
+      let event = pickCellEventForMap(room.currentMapIndex || 1);
+      // 旅人のbadEventResist: 不利なイベントを50%の確率で無効化（モンスター遭遇も回避対象）
       const passive = player.role.passive || {};
       if (passive.badEventResist) {
-        const delta = event.apply(player);
-        const isBad = (delta.hp && delta.hp < 0) || (delta.energy && delta.energy < 0) || (delta.move && delta.move < 0);
-        if (isBad && Math.random() < 0.5) {
-          event = { id: 'resist', label: '旅人の直感で危険を回避した', apply: () => ({}) };
+        if (event.monster) {
+          if (Math.random() < 0.5) event = { id: 'resist', label: '旅人の直感でモンスターの気配を避けた', apply: () => ({}) };
+        } else {
+          const delta = event.apply(player);
+          const isBad = (delta.hp && delta.hp < 0) || (delta.energy && delta.energy < 0) || (delta.move && delta.move < 0);
+          if (isBad && Math.random() < 0.5) {
+            event = { id: 'resist', label: '旅人の直感で危険を回避した', apply: () => ({}) };
+          }
         }
       }
       cellEventLabel = event.label;
       addLog(room, `${player.name} が止まったマス: ${event.label}`);
-      const delta = event.apply(player);
-      if (delta.move) {
-        cellMoveDelta = delta.move;
-        const newPos = clamp(player.position + delta.move, 0, BOARD_SIZE);
-        player.position = newPos;
+      if (event.monster) {
+        encounteredMonster = pickRandomMonster();
+      } else {
+        const delta = event.apply(player);
+        if (delta.move) {
+          cellMoveDelta = delta.move;
+          const newPos = clamp(player.position + delta.move, 0, getBoardSize(room));
+          player.position = newPos;
+        }
+        if (delta.hp) { const { hpApplied } = applyDelta(room, player, { hp: delta.hp }); cellHpApplied = hpApplied; }
+        if (delta.energy) applyDelta(room, player, { energy: delta.energy });
       }
-      if (delta.hp) { const { hpApplied } = applyDelta(room, player, { hp: delta.hp }); cellHpApplied = hpApplied; }
-      if (delta.energy) applyDelta(room, player, { energy: delta.energy });
       checkGoal(room, player);
     }
+
+    // ショートカットが発動していれば、マスイベントより先に通知する
+    if (shortcutData) io.to(room.id).emit('shortcutTriggered', shortcutData);
 
     // 先に「止まったマスの効果」を通知し、その後にHP変動を通知する
     io.to(room.id).emit('cellEventResult', {
@@ -1648,6 +2000,7 @@ io.on('connection', (socket) => {
       finalPos: player.position,
     });
     if (cellHpApplied !== 0) emitHpChange(room, player, cellHpApplied);
+    if (encounteredMonster) startMonsterBattleNegotiation(room, player, encounteredMonster, null);
     broadcastRoom(room);
   });
 
@@ -1657,7 +2010,7 @@ io.on('connection', (socket) => {
     const player = getPlayer(room, socket.id);
     const opponent = getPlayer(room, opponentId);
     if (!player || !opponent || !player.pendingMoveTotal) return;
-    if (position <= 0 || position > BOARD_SIZE) return;
+    if (position <= 0 || position > getBoardSize(room)) return;
 
     const moveSteps = position - (player.moveStartPos || 0);
     const startPosForTrap = player.moveStartPos || 0;
@@ -1706,6 +2059,13 @@ io.on('connection', (socket) => {
     }
     broadcastRoom(room);
     tryResolveBattleNegotiation(room);
+  });
+
+  socket.on('submitMonsterBattleChoice', ({ powerId }) => {
+    const room = findRoomBySocket(socket.id);
+    if (!room || !room.pendingMonsterBattle) return;
+    if (room.pendingMonsterBattle.playerId !== socket.id) return;
+    resolveMonsterBattleChoice(room, powerId || null);
   });
 
   socket.on('submitCounterChoice', ({ powerId }) => {
@@ -1830,30 +2190,27 @@ io.on('connection', (socket) => {
         break;
       }
       case 'moveDebuffAll': {
-        const others = room.players.filter(t => t.id !== player.id && !t.finished);
-        others.forEach(t => {
-          t.pendingIncomingMoveEffect = { mode: stage.effect.mode, value: stage.effect.value };
-        });
-        addLog(room, `${player.name} は時間を操り、他の全プレイヤーの次の移動に干渉した`);
+        room.activeTimejammer = { casterId: player.id, mode: stage.effect.mode, value: stage.effect.value };
+        addLog(room, `${player.name} は時間を歪め、次の自分の番まで全プレイヤーの移動を干渉する`);
         break;
       }
       case 'disasterForesight': {
         let message, positive;
-        if (room.disasterFired) {
-          message = '災害は既にこのマップで発生済みのようだ';
+        const within = stage.effect.withinTurns || 8;
+        const schedule = Array.isArray(room.disasterSchedule) ? room.disasterSchedule : [];
+        if (schedule.length === 0) {
+          message = 'このマップで災害の気配はもう感じられない';
           positive = false;
-        } else if (room.disasterTriggerTurn != null) {
-          const remaining = room.disasterTriggerTurn - room.globalTurnCount;
-          if (remaining >= 0 && remaining <= (stage.effect.withinTurns || 8)) {
-            message = `不吉な予感がする…${stage.effect.withinTurns || 8}ターン以内に災害が起こりそうだ`;
+        } else {
+          // 次に来る災害までの残りターン数を見る
+          const remaining = schedule[0] - room.globalTurnCount;
+          if (remaining >= 0 && remaining <= within) {
+            message = `不吉な予感がする…${within}ターン以内に災害が起こりそうだ`;
             positive = true;
           } else {
             message = '当分の間、災害の気配は感じられない';
             positive = false;
           }
-        } else {
-          message = '当分の間、災害の気配は感じられない';
-          positive = false;
         }
         socket.emit('disasterForesightResult', { message, positive });
         addLog(room, `${player.name} は予知の祈祷を行った`, { secret: true, ownerId: player.id, abilityName: stage.name, hiddenMsg: `${player.name} は超能力を発動した` });
